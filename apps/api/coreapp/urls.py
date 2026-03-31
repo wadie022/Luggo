@@ -3,7 +3,7 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import (
     healthz, RegisterView, TripListView, TripDetailView,
-    ShipmentCreateView, ShipmentClientView, MeView,
+    ShipmentCreateView, ShipmentClientView, MeView, AvatarUploadView,
     KYCUploadView, KYCStatusView,
     AgencyKYBUploadView, AgencyKYBStatusView,
     AgencyTripsView, AgencyTripEditView, AgencyShipmentsView, AgencyShipmentStatusView, AgencyStatsView
@@ -17,6 +17,7 @@ urlpatterns = [
     path("auth/refresh/", TokenRefreshView.as_view(), name="auth-refresh"),
 
     path("me/", MeView.as_view(), name="me"),
+    path("me/avatar/", AvatarUploadView.as_view(), name="me-avatar"),
 
     path("trips/", TripListView.as_view(), name="trip-list"),
     path("trips/<int:pk>/", TripDetailView.as_view(), name="trip-detail"),

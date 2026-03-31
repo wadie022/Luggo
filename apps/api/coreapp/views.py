@@ -153,7 +153,20 @@ class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return Response(MeSerializer(request.user).data)
+        return Response(MeSerializer(request.user, context={"request": request}).data)
+
+
+class AvatarUploadView(APIView):
+    """PATCH /api/me/avatar/ — upload ou remplace la photo de profil."""
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        avatar = request.FILES.get("avatar")
+        if not avatar:
+            return Response({"detail": "Fichier avatar requis."}, status=status.HTTP_400_BAD_REQUEST)
+        request.user.avatar = avatar
+        request.user.save(update_fields=["avatar"])
+        return Response(MeSerializer(request.user, context={"request": request}).data)
 
 
 class RegisterView(generics.CreateAPIView):

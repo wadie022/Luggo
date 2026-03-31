@@ -59,8 +59,13 @@ export default function RegisterPage() {
       saveRole(me.role);
 
       // 4) redirect
-      if (me.role === "AGENCY") router.push("/dashboard/agency");
-      else router.push("/trips");
+      if (me.role === "AGENCY") {
+        router.push("/dashboard/agency");
+      } else if (me.role === "CLIENT") {
+        router.push("/profile/kyc");
+      } else {
+        router.push("/trips");
+      }
     } catch (err: any) {
       setErrorMsg(err?.message || "Erreur inconnue");
     } finally {

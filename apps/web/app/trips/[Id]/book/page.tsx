@@ -72,6 +72,11 @@ export default function BookShipmentPage() {
         const me = await fetchMe();
         if (me.role === "AGENCY") {
           router.replace("/dashboard/agency");
+          return;
+        }
+        if (me.role === "CLIENT" && me.kyc_status !== "VERIFIED") {
+          router.replace("/profile/kyc");
+          return;
         }
       } catch {
         router.replace("/login");

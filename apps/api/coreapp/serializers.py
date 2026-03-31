@@ -7,16 +7,25 @@ from django.db.models.functions import Coalesce
 
 class MeSerializer(serializers.ModelSerializer):
     kyc_status = serializers.SerializerMethodField()
+    avatar_url  = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ("id", "username", "email", "role", "kyc_status")
+        fields = ("id", "username", "email", "role", "kyc_status", "avatar_url")
 
     def get_kyc_status(self, obj):
         kyc = getattr(obj, 'kyc', None)
         if kyc:
             return kyc.status
         return obj.kyc_status
+
+    def get_avatar_url(self, obj):
+        if obj.avatar:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.avatar.url)
+            return obj.avatar.url
+        return None
 
 
 class KYCDocumentSerializer(serializers.ModelSerializer):

@@ -164,6 +164,15 @@ export default function KYCPage() {
           </div>
         </div>
 
+        {/* CTA si VERIFIED */}
+        {kycData?.status === "VERIFIED" && (
+          <div className="mb-6 flex justify-end">
+            <Link href="/trips" className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm">
+              Continuer vers les trajets →
+            </Link>
+          </div>
+        )}
+
         {/* Données extraites si VERIFIED */}
         {kycData?.status === "VERIFIED" && kycData.extracted_data && Object.keys(kycData.extracted_data).length > 0 && (
           <div className="rounded-3xl border border-emerald-200 bg-white shadow-sm p-6 mb-8">

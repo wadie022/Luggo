@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE, getAccessToken, getRole, logout } from "@/lib/api";
+import { API_BASE, getAccessToken, getRole, logout, fetchMe, authHeader } from "@/lib/api";
 import { MapPin, Package, Calendar, ArrowRight } from "lucide-react";
 
 type Trip = {
@@ -26,11 +26,17 @@ export default function TripsPage() {
   const [error, setError] = useState<string | null>(null);
   const [origin, setOrigin] = useState("");
   const [dest, setDest] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [username, setUsername] = useState<string>("");
 
   // Guard: must be logged in
   useEffect(() => {
     const token = getAccessToken();
-    if (!token) router.replace("/login");
+    if (!token) { router.replace("/login"); return; }
+    fetchMe().then((me) => {
+      setAvatarUrl(me.avatar_url ?? null);
+      setUsername(me.username ?? "");
+    }).catch(() => {});
   }, [router]);
 
   async function fetchTrips() {
@@ -86,19 +92,23 @@ export default function TripsPage() {
 
           <div className="flex items-center gap-2">
             {role === "AGENCY" && (
-              <Link
-                href="/dashboard/agency"
-                className="px-3 py-2 rounded-xl text-sm font-semibold text-emerald-300 hover:bg-slate-800"
-              >
+              <Link href="/dashboard/agency" className="px-3 py-2 rounded-xl text-sm font-semibold text-emerald-300 hover:bg-slate-800">
                 Dashboard agence
               </Link>
             )}
-            <button
-              onClick={handleLogout}
-              className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800"
-            >
+            <button onClick={handleLogout} className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
               Déconnexion
             </button>
+            {/* Avatar profil */}
+            <Link href="/profile" className="flex items-center">
+              <div className="h-9 w-9 rounded-full overflow-hidden bg-blue-500 flex items-center justify-center ring-2 ring-slate-700 hover:ring-blue-400 transition">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Profil" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-white text-xs font-extrabold">{username.slice(0, 2).toUpperCase() || "?"}</span>
+                )}
+              </div>
+            </Link>
           </div>
         </div>
       </header>
