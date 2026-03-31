@@ -4,7 +4,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import (
     healthz, RegisterView, TripListView, TripDetailView,
     ShipmentCreateView, MeView,
-    AgencyTripsView, AgencyShipmentsView, AgencyShipmentStatusView, AgencyStatsView
+    AgencyTripsView, AgencyTripEditView, AgencyShipmentsView, AgencyShipmentStatusView, AgencyStatsView
 )
 
 urlpatterns = [
@@ -23,6 +23,7 @@ urlpatterns = [
 
     # ✅ agency
     path("agency/trips/", AgencyTripsView.as_view(), name="agency-trips"),
+    path("agency/trips/<int:pk>/", AgencyTripEditView.as_view(), name="agency-trip-edit"),
     path("agency/shipments/", AgencyShipmentsView.as_view(), name="agency-shipments"),
     path("agency/shipments/<int:pk>/status/", AgencyShipmentStatusView.as_view(), name="agency-shipment-status"),
     path("agency/stats/", AgencyStatsView.as_view(), name="agency-stats"),

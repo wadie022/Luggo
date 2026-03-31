@@ -110,6 +110,59 @@ class AgencyTripsView(generics.ListAPIView):
         )
 
 
+class AgencyTripEditView(APIView):
+    """
+    PATCH /api/agency/trips/<id>/
+    - Cas 1 : aucun shipment ACCEPTED → modification complète autorisée
+    - Cas 2 : used_kg > 0 → seule la capacité est modifiable
+    """
+    permission_classes = [IsAuthenticated, IsAgency]
+
+    def patch(self, request, pk):
+        agency = getattr(request.user, "agency", None)
+        if agency is None:
+            return Response({"detail": "Aucune agence liée à ce compte."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            trip = Trip.objects.get(pk=pk, agency=agency)
+        except Trip.DoesNotExist:
+            return Response({"detail": "Trajet introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        used_kg = Shipment.objects.filter(trip=trip, status="ACCEPTED").aggregate(
+            v=Coalesce(Sum("weight_kg"), 0.0)
+        )["v"]
+
+        data = request.data
+
+        if used_kg > 0:
+            # Cas 2 : shipments acceptés → seule la capacité est modifiable
+            allowed = {"capacity_kg"}
+            forbidden = [k for k in data.keys() if k not in allowed]
+            if forbidden:
+                return Response(
+                    {"detail": f"Des shipments sont déjà acceptés. Seule la capacité est modifiable. Champs refusés : {', '.join(forbidden)}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if "capacity_kg" in data:
+                new_cap = float(data["capacity_kg"])
+                if new_cap < used_kg:
+                    return Response(
+                        {"detail": f"La capacité ne peut pas être inférieure aux kg déjà acceptés ({used_kg} kg)."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                trip.capacity_kg = new_cap
+        else:
+            # Cas 1 : aucun shipment accepté → modification complète
+            allowed_fields = {"origin_country", "origin_city", "dest_country", "dest_city",
+                              "departure_at", "arrival_eta", "capacity_kg", "price_per_kg", "status"}
+            for field in allowed_fields:
+                if field in data:
+                    setattr(trip, field, data[field])
+
+        trip.save()
+        return Response(AgencyTripSerializer(trip).data, status=status.HTTP_200_OK)
+
+
 class AgencyShipmentsView(generics.ListAPIView):
     """
     GET /api/agency/shipments/?status=PENDING|ACCEPTED|REJECTED
