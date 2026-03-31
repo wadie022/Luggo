@@ -1,1 +1,1 @@
-web: gunicorn core.wsgi --chdir apps/api
+web: cd apps/api && python manage.py migrate && gunicorn core.wsgi
