@@ -5,6 +5,7 @@ from .views import (
     healthz, RegisterView, TripListView, TripDetailView,
     ShipmentCreateView, ShipmentClientView, MeView,
     KYCUploadView, KYCStatusView,
+    AgencyKYBUploadView, AgencyKYBStatusView,
     AgencyTripsView, AgencyTripEditView, AgencyShipmentsView, AgencyShipmentStatusView, AgencyStatsView
 )
 
@@ -26,6 +27,10 @@ urlpatterns = [
     # KYC
     path("kyc/upload/", KYCUploadView.as_view(), name="kyc-upload"),
     path("kyc/status/", KYCStatusView.as_view(), name="kyc-status"),
+
+    # KYB (agences)
+    path("agency/kyb/upload/", AgencyKYBUploadView.as_view(), name="agency-kyb-upload"),
+    path("agency/kyb/status/", AgencyKYBStatusView.as_view(), name="agency-kyb-status"),
 
     # ✅ agency
     path("agency/trips/", AgencyTripsView.as_view(), name="agency-trips"),

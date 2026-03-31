@@ -113,10 +113,10 @@ export default function AgencyTripsPage() {
                 : "Votre identité n'est pas encore vérifiée. La vérification KYC est requise pour publier des trajets."}
             </p>
             <Link
-              href="/profile/kyc"
+              href="/dashboard/agency/kyb"
               className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold ${kycStatus === "REJECTED" ? "bg-red-600 text-white hover:bg-red-700" : "bg-amber-500 text-white hover:bg-amber-600"}`}
             >
-              Vérifier mon identité →
+              Vérifier mon entreprise →
             </Link>
           </div>
         </div>
@@ -241,8 +241,8 @@ function TopBar() {
           <Link href="/dashboard/agency/capacity" className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
             Capacité
           </Link>
-          <Link href="/profile/kyc" className="px-3 py-2 rounded-xl text-sm font-semibold text-emerald-300 hover:bg-slate-800">
-            KYC
+          <Link href="/dashboard/agency/kyb" className="px-3 py-2 rounded-xl text-sm font-semibold text-emerald-300 hover:bg-slate-800">
+            Vérification
           </Link>
           <Link href="/dashboard/agency/trips/new" className="px-3 py-2 rounded-xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700">
             Publier

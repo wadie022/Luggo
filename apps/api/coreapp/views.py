@@ -17,10 +17,10 @@ import mimetypes
 import re as _re
 from django.utils import timezone
 
-from .models import Trip, Shipment, KYCDocument
+from .models import Trip, Shipment, KYCDocument, AgencyDocument
 from .serializers import (
     RegisterSerializer, TripSerializer, ShipmentSerializer, MeSerializer,
-    AgencyTripSerializer, AgencyShipmentSerializer, KYCDocumentSerializer
+    AgencyTripSerializer, AgencyShipmentSerializer, KYCDocumentSerializer, AgencyDocumentSerializer
 )
 from .permissions import IsAgency
 
@@ -84,6 +84,58 @@ def _verify_id_with_claude(file_path: str) -> dict:
 
     except Exception as e:
         return {"is_valid_id": False, "reason": str(e)}
+
+
+def _verify_business_with_claude(file_path: str) -> dict:
+    """Envoie le document d'entreprise à Claude et extrait les infos (Kbis / Registre de Commerce)."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        return {"is_valid_business": False, "reason": "ANTHROPIC_API_KEY non configurée"}
+
+    try:
+        import anthropic
+
+        mime, _ = mimetypes.guess_type(file_path)
+        if mime not in ("image/jpeg", "image/png", "image/gif", "image/webp"):
+            mime = "image/jpeg"
+
+        with open(file_path, "rb") as f:
+            img_b64 = base64.standard_b64encode(f.read()).decode("utf-8")
+
+        client = anthropic.Anthropic(api_key=api_key)
+        msg = client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=512,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {"type": "base64", "media_type": mime, "data": img_b64},
+                    },
+                    {
+                        "type": "text",
+                        "text": (
+                            "Analyse ce document d'entreprise (Kbis français, extrait du Registre de Commerce marocain, "
+                            "ou tout autre document officiel d'immatriculation d'entreprise) et réponds UNIQUEMENT en JSON valide, sans texte autour :\n"
+                            '{"is_valid_business": true, "company_name": "", "registration_number": "", '
+                            '"legal_form": "", "address": "", "manager_name": "", "country": "", "document_type": "Kbis"}\n'
+                            "Si ce n'est pas un document officiel d'entreprise valide ou si l'image est illisible, "
+                            'réponds : {"is_valid_business": false, "reason": "..."}'
+                        ),
+                    },
+                ],
+            }],
+        )
+
+        text = msg.content[0].text.strip()
+        m = _re.search(r"\{.*\}", text, _re.DOTALL)
+        if m:
+            return json.loads(m.group())
+        return {"is_valid_business": False, "reason": "Réponse non parsable"}
+
+    except Exception as e:
+        return {"is_valid_business": False, "reason": str(e)}
 
 
 class ShipmentCreateView(generics.ListCreateAPIView):
@@ -215,6 +267,69 @@ class KYCStatusView(APIView):
         if kyc is None:
             return Response({"status": "PENDING", "extracted_data": {}, "rejection_reason": ""})
         return Response(KYCDocumentSerializer(kyc).data)
+
+
+# ============================
+# 🏢 KYB ENDPOINTS (Agences)
+# ============================
+
+class AgencyKYBUploadView(APIView):
+    """
+    POST /api/agency/kyb/upload/
+    Multipart : document (Kbis ou RC — obligatoire)
+    → crée ou met à jour le AgencyDocument, lance la vérification Claude.
+    """
+    permission_classes = [IsAuthenticated, IsAgency]
+
+    def post(self, request):
+        agency = getattr(request.user, "agency", None)
+        if agency is None:
+            return Response({"detail": "Aucune agence liée à ce compte."}, status=status.HTTP_400_BAD_REQUEST)
+
+        doc_file = request.FILES.get("document")
+        if not doc_file:
+            return Response({"detail": "Le document est obligatoire."}, status=status.HTTP_400_BAD_REQUEST)
+
+        kyb, _ = AgencyDocument.objects.get_or_create(agency=agency)
+        kyb.status = "PENDING"
+        kyb.rejection_reason = ""
+        kyb.extracted_data = {}
+        kyb.document = doc_file
+        kyb.save()
+
+        result = _verify_business_with_claude(kyb.document.path)
+
+        if result.get("is_valid_business"):
+            kyb.status = "VERIFIED"
+            kyb.extracted_data = result
+            kyb.verified_at = timezone.now()
+            agency.kyc_status = "VERIFIED"
+            agency.save(update_fields=["kyc_status"])
+        else:
+            kyb.status = "REJECTED"
+            kyb.rejection_reason = result.get("reason", "Document invalide ou illisible.")
+            agency.kyc_status = "REJECTED"
+            agency.save(update_fields=["kyc_status"])
+
+        kyb.save()
+        return Response(AgencyDocumentSerializer(kyb).data, status=status.HTTP_200_OK)
+
+
+class AgencyKYBStatusView(APIView):
+    """
+    GET /api/agency/kyb/status/
+    → retourne le statut KYB de l'agence connectée.
+    """
+    permission_classes = [IsAuthenticated, IsAgency]
+
+    def get(self, request):
+        agency = getattr(request.user, "agency", None)
+        if agency is None:
+            return Response({"detail": "Aucune agence liée à ce compte."}, status=status.HTTP_400_BAD_REQUEST)
+        kyb = getattr(agency, "kyb_doc", None)
+        if kyb is None:
+            return Response({"status": "PENDING", "extracted_data": {}, "rejection_reason": ""})
+        return Response(AgencyDocumentSerializer(kyb).data)
 
 
 # ============================

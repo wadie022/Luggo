@@ -1,7 +1,7 @@
 # coreapp/serializers.py
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from .models import User, Trip, Shipment, Agency, KYCDocument
+from .models import User, Trip, Shipment, Agency, KYCDocument, AgencyDocument
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 
@@ -22,6 +22,13 @@ class MeSerializer(serializers.ModelSerializer):
 class KYCDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = KYCDocument
+        fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at")
+        read_only_fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at")
+
+
+class AgencyDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AgencyDocument
         fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at")
         read_only_fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at")
 

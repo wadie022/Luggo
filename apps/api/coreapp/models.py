@@ -33,6 +33,7 @@ class Agency(models.Model):
 # Catégorie douane (pour estimation pro)
 # -----------------------------------------
 class KYCDocument(models.Model):
+    """Vérification d'identité — pour les clients (particuliers)."""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='kyc')
     id_front = models.FileField(upload_to='kyc/', null=True, blank=True)
     id_back  = models.FileField(upload_to='kyc/', null=True, blank=True)
@@ -44,6 +45,20 @@ class KYCDocument(models.Model):
 
     def __str__(self):
         return f"KYC {self.user.username} → {self.status}"
+
+
+class AgencyDocument(models.Model):
+    """Vérification d'entreprise (KYB) — pour les agences (Kbis / Registre de Commerce)."""
+    agency = models.OneToOneField(Agency, on_delete=models.CASCADE, related_name='kyb_doc')
+    document = models.FileField(upload_to='kyb/', null=True, blank=True)
+    status   = models.CharField(max_length=20, choices=KYC_STATUS, default='PENDING')
+    rejection_reason = models.TextField(blank=True)
+    extracted_data   = models.JSONField(default=dict, blank=True)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    verified_at  = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"KYB {self.agency.legal_name} → {self.status}"
 
 
 class CustomsCategory(models.Model):
