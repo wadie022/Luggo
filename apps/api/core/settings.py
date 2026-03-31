@@ -142,8 +142,33 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-MEDIA_URL  = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# ---------------------------------------------------------------------------
+# Stockage fichiers — Cloudflare R2 en prod, local en dev
+# ---------------------------------------------------------------------------
+_R2_BUCKET = os.getenv('CLOUDFLARE_R2_BUCKET')
+
+if _R2_BUCKET:
+    # Cloudflare R2 (compatible S3)
+    DEFAULT_FILE_STORAGE   = 'storages.backends.s3boto3.S3Boto3Storage'
+    AWS_ACCESS_KEY_ID      = os.getenv('CLOUDFLARE_R2_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY  = os.getenv('CLOUDFLARE_R2_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = _R2_BUCKET
+    AWS_S3_ENDPOINT_URL    = f"https://{os.getenv('CLOUDFLARE_ACCOUNT_ID')}.r2.cloudflarestorage.com"
+    AWS_S3_REGION_NAME     = 'auto'
+    AWS_DEFAULT_ACL        = 'public-read'
+    AWS_S3_FILE_OVERWRITE  = False
+    AWS_QUERYSTRING_AUTH   = False  # URLs publiques directes
+    _r2_domain = os.getenv('CLOUDFLARE_R2_CUSTOM_DOMAIN')
+    if _r2_domain:
+        AWS_S3_CUSTOM_DOMAIN = _r2_domain
+        MEDIA_URL = f'https://{_r2_domain}/'
+    else:
+        MEDIA_URL = f"{AWS_S3_ENDPOINT_URL}/{_R2_BUCKET}/"
+else:
+    # Stockage local (dev)
+    MEDIA_URL  = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

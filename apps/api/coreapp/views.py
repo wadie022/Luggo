@@ -34,7 +34,7 @@ def healthz(request):
 # 🔍 CLAUDE KYC VERIFICATION
 # ============================
 
-def _verify_id_with_claude(file_path: str) -> dict:
+def _verify_id_with_claude(file_bytes: bytes, mime: str) -> dict:
     """Envoie l'image à Claude et extrait les infos du document d'identité."""
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
@@ -43,12 +43,10 @@ def _verify_id_with_claude(file_path: str) -> dict:
     try:
         import anthropic
 
-        mime, _ = mimetypes.guess_type(file_path)
         if mime not in ("image/jpeg", "image/png", "image/gif", "image/webp"):
             mime = "image/jpeg"
 
-        with open(file_path, "rb") as f:
-            img_b64 = base64.standard_b64encode(f.read()).decode("utf-8")
+        img_b64 = base64.standard_b64encode(file_bytes).decode("utf-8")
 
         client = anthropic.Anthropic(api_key=api_key)
         msg = client.messages.create(
@@ -86,7 +84,7 @@ def _verify_id_with_claude(file_path: str) -> dict:
         return {"is_valid_id": False, "reason": str(e)}
 
 
-def _verify_business_with_claude(file_path: str) -> dict:
+def _verify_business_with_claude(file_bytes: bytes, mime: str) -> dict:
     """Envoie le document d'entreprise à Claude et extrait les infos (Kbis / Registre de Commerce)."""
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
@@ -95,12 +93,10 @@ def _verify_business_with_claude(file_path: str) -> dict:
     try:
         import anthropic
 
-        mime, _ = mimetypes.guess_type(file_path)
         if mime not in ("image/jpeg", "image/png", "image/gif", "image/webp"):
             mime = "image/jpeg"
 
-        with open(file_path, "rb") as f:
-            img_b64 = base64.standard_b64encode(f.read()).decode("utf-8")
+        img_b64 = base64.standard_b64encode(file_bytes).decode("utf-8")
 
         client = anthropic.Anthropic(api_key=api_key)
         msg = client.messages.create(
@@ -230,6 +226,11 @@ class KYCUploadView(APIView):
         if not id_front:
             return Response({"detail": "id_front requis."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Lire les bytes avant upload (fonctionne local ET R2)
+        front_bytes = id_front.read()
+        front_mime  = id_front.content_type or "image/jpeg"
+        id_front.seek(0)  # rembobiner pour l'upload
+
         kyc, _ = KYCDocument.objects.get_or_create(user=request.user)
         kyc.status = "PENDING"
         kyc.rejection_reason = ""
@@ -241,9 +242,8 @@ class KYCUploadView(APIView):
             kyc.id_back = id_back
         kyc.save()
 
-        # Vérification Claude sur le recto
-        front_path = kyc.id_front.path
-        result = _verify_id_with_claude(front_path)
+        # Vérification Claude sur le recto (via bytes en mémoire)
+        result = _verify_id_with_claude(front_bytes, front_mime)
 
         if result.get("is_valid_id"):
             kyc.status = "VERIFIED"
@@ -303,6 +303,11 @@ class AgencyKYBUploadView(APIView):
         if not doc_file:
             return Response({"detail": "Le document est obligatoire."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Lire les bytes avant upload (fonctionne local ET R2)
+        doc_bytes = doc_file.read()
+        doc_mime  = doc_file.content_type or "image/jpeg"
+        doc_file.seek(0)  # rembobiner pour l'upload
+
         kyb, _ = AgencyDocument.objects.get_or_create(agency=agency)
         kyb.status = "PENDING"
         kyb.rejection_reason = ""
@@ -310,7 +315,7 @@ class AgencyKYBUploadView(APIView):
         kyb.document = doc_file
         kyb.save()
 
-        result = _verify_business_with_claude(kyb.document.path)
+        result = _verify_business_with_claude(doc_bytes, doc_mime)
 
         if result.get("is_valid_business"):
             kyb.status = "VERIFIED"
