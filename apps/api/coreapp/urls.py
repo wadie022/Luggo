@@ -3,7 +3,7 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import (
     healthz, RegisterView, TripListView, TripDetailView,
-    ShipmentCreateView, MeView,
+    ShipmentCreateView, ShipmentClientView, MeView,
     AgencyTripsView, AgencyTripEditView, AgencyShipmentsView, AgencyShipmentStatusView, AgencyStatsView
 )
 
@@ -20,6 +20,7 @@ urlpatterns = [
     path("trips/<int:pk>/", TripDetailView.as_view(), name="trip-detail"),
 
     path("shipments/", ShipmentCreateView.as_view(), name="shipment-create"),
+    path("shipments/<int:pk>/", ShipmentClientView.as_view(), name="shipment-client"),
 
     # ✅ agency
     path("agency/trips/", AgencyTripsView.as_view(), name="agency-trips"),

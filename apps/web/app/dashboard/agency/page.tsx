@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, fetchMe, authHeader } from "@/lib/api";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 type Trip = {
   id: number;
@@ -27,6 +27,7 @@ export default function AgencyTripsPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
     async function boot() {
@@ -67,6 +68,26 @@ export default function AgencyTripsPage() {
     if (!bootLoading) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bootLoading]);
+
+  async function handleDeleteTrip(id: number) {
+    if (!confirm("Supprimer ce trajet définitivement ?")) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`${API_BASE}/agency/trips/${id}/`, {
+        method: "DELETE",
+        headers: authHeader(),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.detail || "Suppression impossible.");
+      }
+      setTrips((prev) => prev.filter((t) => t.id !== id));
+    } catch (e: any) {
+      setErr(e.message);
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   if (bootLoading) {
     return (
@@ -158,6 +179,16 @@ export default function AgencyTripsPage() {
                     >
                       Voir capacité
                     </Link>
+                    {t.used_kg === 0 && (
+                      <button
+                        onClick={() => handleDeleteTrip(t.id)}
+                        disabled={deletingId === t.id}
+                        className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 disabled:opacity-60 text-sm font-semibold"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        {deletingId === t.id ? "Suppression…" : "Supprimer"}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

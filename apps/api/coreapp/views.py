@@ -162,6 +162,83 @@ class AgencyTripEditView(APIView):
         trip.save()
         return Response(AgencyTripSerializer(trip).data, status=status.HTTP_200_OK)
 
+    def delete(self, request, pk):
+        agency = getattr(request.user, "agency", None)
+        if agency is None:
+            return Response({"detail": "Aucune agence liée à ce compte."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            trip = Trip.objects.get(pk=pk, agency=agency)
+        except Trip.DoesNotExist:
+            return Response({"detail": "Trajet introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        used_kg = Shipment.objects.filter(trip=trip, status="ACCEPTED").aggregate(
+            v=Coalesce(Sum("weight_kg"), 0.0)
+        )["v"]
+
+        if used_kg > 0:
+            return Response(
+                {"detail": "Suppression impossible : des colis sont déjà acceptés sur ce trajet."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        trip.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ShipmentClientView(APIView):
+    """
+    PATCH /api/shipments/<id>/  — modifier poids/description/téléphone si PENDING
+    DELETE /api/shipments/<id>/ — supprimer si PENDING
+    Ownership vérifié via customer_email dans le body.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def _get_shipment(self, pk, email):
+        try:
+            return Shipment.objects.get(pk=pk, customer_email=email)
+        except Shipment.DoesNotExist:
+            return None
+
+    def patch(self, request, pk):
+        email = (request.data.get("customer_email") or "").strip()
+        if not email:
+            return Response({"detail": "customer_email requis."}, status=status.HTTP_400_BAD_REQUEST)
+
+        sh = self._get_shipment(pk, email)
+        if sh is None:
+            return Response({"detail": "Colis introuvable ou email incorrect."}, status=status.HTTP_404_NOT_FOUND)
+
+        if sh.status != "PENDING":
+            return Response(
+                {"detail": f"Modification impossible : le colis est {sh.status}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        for field in ("weight_kg", "description", "customer_phone"):
+            if field in request.data:
+                setattr(sh, field, request.data[field])
+        sh.save()
+        return Response(ShipmentSerializer(sh).data, status=status.HTTP_200_OK)
+
+    def delete(self, request, pk):
+        email = (request.data.get("customer_email") or "").strip()
+        if not email:
+            return Response({"detail": "customer_email requis."}, status=status.HTTP_400_BAD_REQUEST)
+
+        sh = self._get_shipment(pk, email)
+        if sh is None:
+            return Response({"detail": "Colis introuvable ou email incorrect."}, status=status.HTTP_404_NOT_FOUND)
+
+        if sh.status != "PENDING":
+            return Response(
+                {"detail": f"Suppression impossible : le colis est {sh.status}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        sh.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class AgencyShipmentsView(generics.ListAPIView):
     """
