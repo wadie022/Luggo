@@ -40,7 +40,7 @@ export default function LoginPage() {
       saveTokens(data.access, data.refresh);
 
       // 3) fetch role from backend
-      const me = await fetchMe(data.access);
+      const me = await fetchMe();
       saveRole(me.role);
 
       // 4) redirect auto

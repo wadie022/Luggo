@@ -55,7 +55,7 @@ export default function RegisterPage() {
       saveTokens(loginData.access, loginData.refresh);
 
       // 3) role auto via /me
-      const me = await fetchMe(loginData.access);
+      const me = await fetchMe();
       saveRole(me.role);
 
       // 4) redirect
