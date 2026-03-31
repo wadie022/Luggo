@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE, fetchMe, authHeader } from "@/lib/api";
-import { Pencil, Trash2 } from "lucide-react";
+import { API_BASE, fetchMe, authHeader, logout } from "@/lib/api";
+import { Pencil, Trash2, ShieldAlert } from "lucide-react";
 
 type Trip = {
   id: number;
@@ -28,6 +28,7 @@ export default function AgencyTripsPage() {
   const [err, setErr] = useState<string | null>(null);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [kycStatus, setKycStatus] = useState<string>("PENDING");
 
   useEffect(() => {
     async function boot() {
@@ -37,6 +38,7 @@ export default function AgencyTripsPage() {
           router.push("/trips");
           return;
         }
+        setKycStatus(me.kyc_status ?? "PENDING");
       } catch {
         router.push("/login");
         return;
@@ -100,6 +102,25 @@ export default function AgencyTripsPage() {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <TopBar />
+
+      {kycStatus !== "VERIFIED" && (
+        <div className={`border-b px-4 py-3 ${kycStatus === "REJECTED" ? "bg-red-50 border-red-200" : "bg-amber-50 border-amber-200"}`}>
+          <div className="mx-auto max-w-6xl flex items-center gap-3">
+            <ShieldAlert className={`h-5 w-5 shrink-0 ${kycStatus === "REJECTED" ? "text-red-600" : "text-amber-600"}`} />
+            <p className={`text-sm font-medium flex-1 ${kycStatus === "REJECTED" ? "text-red-700" : "text-amber-700"}`}>
+              {kycStatus === "REJECTED"
+                ? "Votre KYC a été rejeté. Vous ne pouvez pas publier de trajets tant que votre identité n'est pas vérifiée."
+                : "Votre identité n'est pas encore vérifiée. La vérification KYC est requise pour publier des trajets."}
+            </p>
+            <Link
+              href="/profile/kyc"
+              className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold ${kycStatus === "REJECTED" ? "bg-red-600 text-white hover:bg-red-700" : "bg-amber-500 text-white hover:bg-amber-600"}`}
+            >
+              Vérifier mon identité →
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto max-w-6xl px-4 py-10">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
@@ -201,6 +222,9 @@ export default function AgencyTripsPage() {
 }
 
 function TopBar() {
+  const router = useRouter();
+  function handleLogout() { logout(); router.replace("/login"); }
+
   return (
     <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur border-b border-slate-800">
       <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
@@ -217,9 +241,15 @@ function TopBar() {
           <Link href="/dashboard/agency/capacity" className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
             Capacité
           </Link>
+          <Link href="/profile/kyc" className="px-3 py-2 rounded-xl text-sm font-semibold text-emerald-300 hover:bg-slate-800">
+            KYC
+          </Link>
           <Link href="/dashboard/agency/trips/new" className="px-3 py-2 rounded-xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700">
             Publier
           </Link>
+          <button onClick={handleLogout} className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
+            Déconnexion
+          </button>
         </div>
       </div>
     </header>

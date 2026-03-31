@@ -5,13 +5,14 @@ from django.contrib.auth.models import AbstractUser  # → pour créer un utilis
 # -----------------------------
 # Utilisateur de Luggo (custom)
 # -----------------------------
+KYC_STATUS = (('PENDING', 'PENDING'), ('VERIFIED', 'VERIFIED'), ('REJECTED', 'REJECTED'))
+
 class User(AbstractUser):
-    # On ajoute un champ 'role' pour distinguer les profils (CLIENT, AGENCY, ADMIN)
     ROLE_CHOICES = (('CLIENT', 'CLIENT'), ('AGENCY', 'AGENCY'), ('ADMIN', 'ADMIN'))
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='CLIENT')  # → valeur par défaut : CLIENT
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='CLIENT')
+    kyc_status = models.CharField(max_length=20, choices=KYC_STATUS, default='PENDING')
 
     def __str__(self):
-        # Affichage lisible dans l’admin : "username (ROLE)"
         return f"{self.username} ({self.role})"
 
 # -----------------------------
@@ -31,6 +32,20 @@ class Agency(models.Model):
 # -----------------------------------------
 # Catégorie douane (pour estimation pro)
 # -----------------------------------------
+class KYCDocument(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='kyc')
+    id_front = models.FileField(upload_to='kyc/', null=True, blank=True)
+    id_back  = models.FileField(upload_to='kyc/', null=True, blank=True)
+    status   = models.CharField(max_length=20, choices=KYC_STATUS, default='PENDING')
+    rejection_reason = models.TextField(blank=True)
+    extracted_data   = models.JSONField(default=dict, blank=True)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    verified_at  = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"KYC {self.user.username} → {self.status}"
+
+
 class CustomsCategory(models.Model):
     slug = models.SlugField(unique=True)         # identifiant court (ex: 'vetements', 'electronique')
     label = models.CharField(max_length=120)     # libellé visible
@@ -51,7 +66,7 @@ class Trip(models.Model):
     dest_country = models.CharField(max_length=2)     # ex: MA ou FR
     dest_city = models.CharField(max_length=80)       # ex: Rabat, Lyon
     departure_at = models.DateTimeField()             # date/heure départ
-    arrival_eta = models.DateTimeField(null=True, blank=True)  # estimation d’arrivée
+    arrival_eta = models.DateTimeField(null=True, blank=True)  # estimation d'arrivée
     capacity_kg = models.FloatField()                 # capacité acceptée (kg)
     price_per_kg = models.FloatField()                # prix au kilo
     status = models.CharField(max_length=20, default='PUBLISHED')  # PUBLISHED/CLOSED
@@ -60,7 +75,7 @@ class Trip(models.Model):
         return f"{self.origin_city}({self.origin_country}) → {self.dest_city}({self.dest_country}) @ {self.departure_at}"
 
 # -----------------------------------------
-# Réservation d’envoi (faite par un client)
+# Réservation d'envoi (faite par un client)
 # -----------------------------------------
 class Shipment(models.Model):
     trip = models.ForeignKey("Trip", on_delete=models.CASCADE, related_name="shipments")
@@ -86,7 +101,7 @@ class Payment(models.Model):
     amount_total_cents = models.IntegerField()       # montant total en centimes
     currency = models.CharField(max_length=8, default='EUR')
     fee_platform_cents = models.IntegerField(default=0)  # commission plateforme (centimes)
-    stripe_pi = models.CharField(max_length=120, blank=True)  # id PaymentIntent Stripe (quand on l’ajoutera)
+    stripe_pi = models.CharField(max_length=120, blank=True)  # id PaymentIntent Stripe (quand on l'ajoutera)
     status = models.CharField(max_length=20, default='REQUIRES_ACTION')  # REQUIRES_ACTION/SUCCEEDED/FAILED/REFUNDED
 
     def __str__(self):

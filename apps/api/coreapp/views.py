@@ -10,10 +10,17 @@ from rest_framework import status
 from django.db.models import Sum, Q
 from django.db.models.functions import Coalesce
 
-from .models import Trip, Shipment
+import os
+import json
+import base64
+import mimetypes
+import re as _re
+from django.utils import timezone
+
+from .models import Trip, Shipment, KYCDocument
 from .serializers import (
     RegisterSerializer, TripSerializer, ShipmentSerializer, MeSerializer,
-    AgencyTripSerializer, AgencyShipmentSerializer
+    AgencyTripSerializer, AgencyShipmentSerializer, KYCDocumentSerializer
 )
 from .permissions import IsAgency
 
@@ -21,6 +28,62 @@ from .permissions import IsAgency
 @api_view(["GET"])
 def healthz(request):
     return Response({"ok": True})
+
+
+# ============================
+# 🔍 CLAUDE KYC VERIFICATION
+# ============================
+
+def _verify_id_with_claude(file_path: str) -> dict:
+    """Envoie l'image à Claude et extrait les infos du document d'identité."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        return {"is_valid_id": False, "reason": "ANTHROPIC_API_KEY non configurée"}
+
+    try:
+        import anthropic
+
+        mime, _ = mimetypes.guess_type(file_path)
+        if mime not in ("image/jpeg", "image/png", "image/gif", "image/webp"):
+            mime = "image/jpeg"
+
+        with open(file_path, "rb") as f:
+            img_b64 = base64.standard_b64encode(f.read()).decode("utf-8")
+
+        client = anthropic.Anthropic(api_key=api_key)
+        msg = client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=512,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {"type": "base64", "media_type": mime, "data": img_b64},
+                    },
+                    {
+                        "type": "text",
+                        "text": (
+                            "Analyse ce document d'identité et réponds UNIQUEMENT en JSON valide, sans texte autour :\n"
+                            '{"is_valid_id": true, "document_type": "CNI", "last_name": "", '
+                            '"first_name": "", "date_of_birth": "YYYY-MM-DD", '
+                            '"id_number": "", "expiry_date": "YYYY-MM-DD", "country": ""}\n'
+                            "Si ce n'est pas une pièce d'identité valide ou si l'image est illisible, "
+                            'réponds : {"is_valid_id": false, "reason": "..."}'
+                        ),
+                    },
+                ],
+            }],
+        )
+
+        text = msg.content[0].text.strip()
+        m = _re.search(r"\{.*\}", text, _re.DOTALL)
+        if m:
+            return json.loads(m.group())
+        return {"is_valid_id": False, "reason": "Réponse non parsable"}
+
+    except Exception as e:
+        return {"is_valid_id": False, "reason": str(e)}
 
 
 class ShipmentCreateView(generics.ListCreateAPIView):
@@ -75,7 +138,83 @@ class TripListView(generics.ListCreateAPIView):
         agency = getattr(self.request.user, "agency", None)
         if agency is None:
             raise ValidationError("Cet utilisateur n'est lié à aucune agence.")
+        if agency.kyc_status != "VERIFIED":
+            raise ValidationError("KYC non vérifié. Veuillez soumettre vos documents d'identité avant de publier un trajet.")
         serializer.save(agency=agency)
+
+
+# ============================
+# 🪪 KYC ENDPOINTS
+# ============================
+
+class KYCUploadView(APIView):
+    """
+    POST /api/kyc/upload/
+    Multipart : id_front (required), id_back (optional)
+    → crée ou met à jour le KYCDocument, lance la vérification Claude.
+    """
+    permission_classes = [IsAuthenticated]
+    parser_classes = [permissions.AllowAny]  # override below
+
+    def post(self, request):
+        from rest_framework.parsers import MultiPartParser
+        # Parse manually if needed
+        id_front = request.FILES.get("id_front")
+        id_back  = request.FILES.get("id_back")
+
+        if not id_front:
+            return Response({"detail": "id_front requis."}, status=status.HTTP_400_BAD_REQUEST)
+
+        kyc, _ = KYCDocument.objects.get_or_create(user=request.user)
+        kyc.status = "PENDING"
+        kyc.rejection_reason = ""
+        kyc.extracted_data = {}
+
+        if id_front:
+            kyc.id_front = id_front
+        if id_back:
+            kyc.id_back = id_back
+        kyc.save()
+
+        # Vérification Claude sur le recto
+        front_path = kyc.id_front.path
+        result = _verify_id_with_claude(front_path)
+
+        if result.get("is_valid_id"):
+            kyc.status = "VERIFIED"
+            kyc.extracted_data = result
+            kyc.verified_at = timezone.now()
+            # Propager le statut
+            request.user.kyc_status = "VERIFIED"
+            request.user.save(update_fields=["kyc_status"])
+            if hasattr(request.user, "agency"):
+                request.user.agency.kyc_status = "VERIFIED"
+                request.user.agency.save(update_fields=["kyc_status"])
+        else:
+            kyc.status = "REJECTED"
+            kyc.rejection_reason = result.get("reason", "Document invalide ou illisible.")
+            request.user.kyc_status = "REJECTED"
+            request.user.save(update_fields=["kyc_status"])
+            if hasattr(request.user, "agency"):
+                request.user.agency.kyc_status = "REJECTED"
+                request.user.agency.save(update_fields=["kyc_status"])
+
+        kyc.save()
+        return Response(KYCDocumentSerializer(kyc).data, status=status.HTTP_200_OK)
+
+
+class KYCStatusView(APIView):
+    """
+    GET /api/kyc/status/
+    → retourne le statut KYC de l'utilisateur connecté.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        kyc = getattr(request.user, "kyc", None)
+        if kyc is None:
+            return Response({"status": "PENDING", "extracted_data": {}, "rejection_reason": ""})
+        return Response(KYCDocumentSerializer(kyc).data)
 
 
 # ============================

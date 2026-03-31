@@ -1,14 +1,29 @@
 # coreapp/serializers.py
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from .models import User, Trip, Shipment, Agency
+from .models import User, Trip, Shipment, Agency, KYCDocument
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 
 class MeSerializer(serializers.ModelSerializer):
+    kyc_status = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ("id", "username", "email", "role")
+        fields = ("id", "username", "email", "role", "kyc_status")
+
+    def get_kyc_status(self, obj):
+        kyc = getattr(obj, 'kyc', None)
+        if kyc:
+            return kyc.status
+        return obj.kyc_status
+
+
+class KYCDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = KYCDocument
+        fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at")
+        read_only_fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at")
 
 
 class RegisterSerializer(serializers.ModelSerializer):

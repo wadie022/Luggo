@@ -4,6 +4,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import (
     healthz, RegisterView, TripListView, TripDetailView,
     ShipmentCreateView, ShipmentClientView, MeView,
+    KYCUploadView, KYCStatusView,
     AgencyTripsView, AgencyTripEditView, AgencyShipmentsView, AgencyShipmentStatusView, AgencyStatsView
 )
 
@@ -21,6 +22,10 @@ urlpatterns = [
 
     path("shipments/", ShipmentCreateView.as_view(), name="shipment-create"),
     path("shipments/<int:pk>/", ShipmentClientView.as_view(), name="shipment-client"),
+
+    # KYC
+    path("kyc/upload/", KYCUploadView.as_view(), name="kyc-upload"),
+    path("kyc/status/", KYCStatusView.as_view(), name="kyc-status"),
 
     # ✅ agency
     path("agency/trips/", AgencyTripsView.as_view(), name="agency-trips"),
