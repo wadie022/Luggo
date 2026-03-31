@@ -1,0 +1,33 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+db.sqlite3
+*.sqlite3
+
+# Django
+.env
+*.env
+
+# Node / Next.js
+node_modules/
+.next/
+dist/
+build/
+.npm/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code local settings
+.claude/
+
+# Logs
+*.log
+npm-debug.log*

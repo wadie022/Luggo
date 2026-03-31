@@ -1,0 +1,29 @@
+# coreapp/urls.py
+from django.urls import path
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from .views import (
+    healthz, RegisterView, TripListView, TripDetailView,
+    ShipmentCreateView, MeView,
+    AgencyTripsView, AgencyShipmentsView, AgencyShipmentStatusView, AgencyStatsView
+)
+
+urlpatterns = [
+    path("healthz/", healthz, name="healthz"),
+
+    path("auth/register/", RegisterView.as_view(), name="auth-register"),
+    path("auth/login/", TokenObtainPairView.as_view(), name="auth-login"),
+    path("auth/refresh/", TokenRefreshView.as_view(), name="auth-refresh"),
+
+    path("me/", MeView.as_view(), name="me"),
+
+    path("trips/", TripListView.as_view(), name="trip-list"),
+    path("trips/<int:pk>/", TripDetailView.as_view(), name="trip-detail"),
+
+    path("shipments/", ShipmentCreateView.as_view(), name="shipment-create"),
+
+    # ✅ agency
+    path("agency/trips/", AgencyTripsView.as_view(), name="agency-trips"),
+    path("agency/shipments/", AgencyShipmentsView.as_view(), name="agency-shipments"),
+    path("agency/shipments/<int:pk>/status/", AgencyShipmentStatusView.as_view(), name="agency-shipment-status"),
+    path("agency/stats/", AgencyStatsView.as_view(), name="agency-stats"),
+]
