@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, fetchMe, authHeader } from "@/lib/api";
+import { Pencil } from "lucide-react";
 
 type Trip = {
   id: number;
@@ -138,6 +139,13 @@ export default function AgencyTripsPage() {
                   </div>
 
                   <div className="flex flex-col gap-2 min-w-[220px]">
+                    <Link
+                      href={`/dashboard/agency/trips/${t.id}/edit`}
+                      className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 text-sm font-semibold"
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Modifier
+                    </Link>
                     <Link
                       href="/dashboard/agency/shipments"
                       className="px-4 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-sm font-semibold text-center"
