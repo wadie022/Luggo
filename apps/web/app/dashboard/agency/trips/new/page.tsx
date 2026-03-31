@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchMe, authHeader } from "@/lib/api";
+import { API_BASE, fetchMe, authHeader } from "@/lib/api";
 
 type TripPayload = {
   origin_country: string;
@@ -100,7 +100,7 @@ export default function Page() {
         status,
       };
 
-      const res = await fetch("http://127.0.0.1:8000/api/trips/", {
+      const res = await fetch(`${API_BASE}/trips/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

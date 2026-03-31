@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getAccessToken, getRole, logout } from "@/lib/api";
+import { API_BASE, getAccessToken, getRole, logout } from "@/lib/api";
 import { MapPin, Package, Calendar, ArrowRight } from "lucide-react";
 
 type Trip = {
@@ -37,7 +37,7 @@ export default function TripsPage() {
     try {
       setLoading(true);
       setError(null);
-      let url = "http://127.0.0.1:8000/api/trips/";
+      let url = `${API_BASE}/trips/`;
       const params: string[] = [];
       if (origin) params.push(`origin_country=${origin.toUpperCase()}`);
       if (dest) params.push(`dest_country=${dest.toUpperCase()}`);

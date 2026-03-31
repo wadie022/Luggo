@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getAccessToken, getRole, logout, fetchMe } from "@/lib/api";
+import { API_BASE, getAccessToken, getRole, logout, fetchMe } from "@/lib/api";
 import { ArrowLeft, Package, MapPin, Calendar, ArrowRight } from "lucide-react";
 
 type Trip = {
@@ -88,7 +88,7 @@ export default function BookShipmentPage() {
       try {
         setLoadingTrip(true);
         setTripError(null);
-        const res = await fetch(`http://127.0.0.1:8000/api/trips/${tripId}/`);
+        const res = await fetch(`${API_BASE}/trips/${tripId}/`);
         if (!res.ok) throw new Error(`Erreur API: ${res.status}`);
         setTrip(await res.json());
       } catch (err: any) {
@@ -110,7 +110,7 @@ export default function BookShipmentPage() {
 
     try {
       const token = getAccessToken();
-      const res = await fetch("http://127.0.0.1:8000/api/shipments/", {
+      const res = await fetch(`${API_BASE}/shipments/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

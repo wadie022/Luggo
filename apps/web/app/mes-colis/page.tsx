@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Package, MapPin, Search } from "lucide-react";
-import { getRole, logout } from "@/lib/api";
+import { API_BASE, getRole, logout } from "@/lib/api";
 
 type Shipment = {
   id: number;
@@ -53,7 +53,7 @@ export default function MesColisPage() {
     try {
       setLoading(true);
       const res = await fetch(
-        `http://127.0.0.1:8000/api/shipments/?email=${encodeURIComponent(email.trim())}`
+        `${API_BASE}/shipments/?email=${encodeURIComponent(email.trim())}`
       );
       if (!res.ok) throw new Error(`Erreur API: ${res.status}`);
       const data = (await res.json()) as Shipment[];
