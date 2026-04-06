@@ -125,8 +125,8 @@ export default function AgencyTripsPage() {
       <div className="mx-auto max-w-6xl px-4 py-10">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold">Mes trajets</h1>
-            <p className="mt-2 text-slate-600">Liste des trajets publiés par ton agence.</p>
+            <h1 className="text-2xl md:text-3xl font-extrabold">Mes trajets</h1>
+            <p className="mt-1 text-slate-600 text-sm md:text-base">Liste des trajets publiés par ton agence.</p>
           </div>
 
           <div className="flex gap-2">
@@ -180,7 +180,7 @@ export default function AgencyTripsPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2 min-w-[220px]">
+                  <div className="flex flex-col gap-2 w-full md:w-[220px]">
                     <Link
                       href={`/dashboard/agency/trips/${t.id}/edit`}
                       className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 text-sm font-semibold"
@@ -234,20 +234,18 @@ function TopBar() {
           </div>
           <span className="font-bold text-white">Luggo</span>
         </Link>
-        <div className="flex items-center gap-2">
-          <Link href="/dashboard/agency/shipments" className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
+        <div className="flex items-center gap-1 md:gap-2">
+          <Link href="/dashboard/agency/shipments" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
             Demandes
           </Link>
-          <Link href="/dashboard/agency/capacity" className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
-            Capacité
-          </Link>
-          <Link href="/dashboard/agency/kyb" className="px-3 py-2 rounded-xl text-sm font-semibold text-emerald-300 hover:bg-slate-800">
+          <Link href="/dashboard/agency/kyb" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-emerald-300 hover:bg-slate-800">
             Vérification
           </Link>
           <Link href="/dashboard/agency/trips/new" className="px-3 py-2 rounded-xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700">
-            Publier
+            <span className="hidden sm:inline">Publier</span>
+            <span className="sm:hidden">+</span>
           </Link>
-          <button onClick={handleLogout} className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
+          <button onClick={handleLogout} className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
             Déconnexion
           </button>
         </div>

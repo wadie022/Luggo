@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, getAccessToken, getRole, logout, fetchMe, authHeader } from "@/lib/api";
-import { MapPin, Package, Calendar, ArrowRight } from "lucide-react";
+import { MapPin, Package, Calendar, ArrowRight, Menu, X } from "lucide-react";
 
 type Trip = {
   id: number;
@@ -28,6 +28,7 @@ export default function TripsPage() {
   const [dest, setDest] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [username, setUsername] = useState<string>("");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Guard: must be logged in
   useEffect(() => {
@@ -82,24 +83,30 @@ export default function TripsPage() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-sm text-slate-200">
-            <Link href="/trips" className="text-white font-semibold">
-              Trajets
-            </Link>
-            <Link href="/mes-colis" className="hover:text-white">
-              Mes colis
-            </Link>
+            <Link href="/trips" className="text-white font-semibold">Trajets</Link>
+            <Link href="/mes-colis" className="hover:text-white">Mes colis</Link>
           </nav>
+
+          {/* Mobile menu dropdown */}
+          {menuOpen && (
+            <div className="md:hidden absolute top-14 left-0 right-0 bg-slate-900 border-b border-slate-800 px-4 py-4 flex flex-col gap-3 z-50">
+              <Link href="/trips" onClick={() => setMenuOpen(false)} className="text-white font-semibold py-2">Trajets</Link>
+              <Link href="/mes-colis" onClick={() => setMenuOpen(false)} className="text-slate-200 py-2">Mes colis</Link>
+              <Link href="/profile" onClick={() => setMenuOpen(false)} className="text-slate-200 py-2">Mon profil</Link>
+              {role === "AGENCY" && <Link href="/dashboard/agency" onClick={() => setMenuOpen(false)} className="text-emerald-300 py-2">Dashboard agence</Link>}
+              <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="text-left text-red-400 py-2">Déconnexion</button>
+            </div>
+          )}
 
           <div className="flex items-center gap-2">
             {role === "AGENCY" && (
-              <Link href="/dashboard/agency" className="px-3 py-2 rounded-xl text-sm font-semibold text-emerald-300 hover:bg-slate-800">
-                Dashboard agence
+              <Link href="/dashboard/agency" className="hidden md:block px-3 py-2 rounded-xl text-sm font-semibold text-emerald-300 hover:bg-slate-800">
+                Dashboard
               </Link>
             )}
-            <button onClick={handleLogout} className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
+            <button onClick={handleLogout} className="hidden md:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
               Déconnexion
             </button>
-            {/* Avatar profil */}
             <Link href="/profile" className="flex items-center">
               <div className="h-9 w-9 rounded-full overflow-hidden bg-blue-500 flex items-center justify-center ring-2 ring-slate-700 hover:ring-blue-400 transition">
                 {avatarUrl ? (
@@ -109,20 +116,24 @@ export default function TripsPage() {
                 )}
               </div>
             </Link>
+            {/* Hamburger mobile */}
+            <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2 rounded-xl text-slate-200 hover:bg-slate-800">
+              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
       </header>
 
       {/* HERO + SEARCH */}
       <section className="bg-gradient-to-b from-slate-50 to-white border-b border-slate-200">
-        <div className="mx-auto max-w-6xl px-4 py-14">
+        <div className="mx-auto max-w-6xl px-4 py-8 md:py-14">
           <div className="text-xs font-semibold tracking-widest text-blue-600 uppercase mb-2">
             Luggo Transport
           </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-3">
+          <h1 className="text-2xl md:text-5xl font-extrabold tracking-tight mb-3">
             Trajets disponibles
           </h1>
-          <p className="text-slate-600 text-lg max-w-xl mb-8">
+          <p className="text-slate-600 text-sm md:text-lg max-w-xl mb-6 md:mb-8">
             Trouvez un trajet Europe ↔ Maroc et envoyez votre colis en quelques
             clics.
           </p>
@@ -190,7 +201,7 @@ export default function TripsPage() {
           </div>
         )}
 
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {trips.map((trip) => (
             <TripCard
               key={trip.id}

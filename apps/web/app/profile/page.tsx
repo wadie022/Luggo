@@ -132,7 +132,7 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-2xl px-4 py-10">
+      <div className="mx-auto max-w-2xl px-4 py-6 md:py-10">
         <Link href="/trips" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 mb-8">
           <ArrowLeft className="h-4 w-4" /> Retour aux trajets
         </Link>
@@ -160,8 +160,8 @@ export default function ProfilePage() {
           </div>
           {uploading && <p className="text-xs text-slate-400">Mise à jour…</p>}
           <div className="text-center">
-            <div className="text-xl font-extrabold">{me?.username}</div>
-            <div className="text-sm text-slate-500">{me?.email}</div>
+            <div className="text-lg md:text-xl font-extrabold">{me?.username}</div>
+            <div className="text-xs md:text-sm text-slate-500">{me?.email}</div>
           </div>
           {/* Badge KYC */}
           <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold ${badge.cls}`}>

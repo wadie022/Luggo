@@ -126,24 +126,25 @@ export default function KYCPage() {
           </Link>
           <div className="flex items-center gap-2">
             {role === "AGENCY" && (
-              <Link href="/dashboard/agency" className="px-3 py-2 rounded-xl text-sm font-semibold text-emerald-300 hover:bg-slate-800">
+              <Link href="/dashboard/agency" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-emerald-300 hover:bg-slate-800">
                 Dashboard
               </Link>
             )}
             <button onClick={handleLogout} className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
-              Déconnexion
+              <span className="hidden sm:inline">Déconnexion</span>
+              <span className="sm:hidden text-xs">✕</span>
             </button>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-3xl px-4 py-10">
+      <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
         <Link href={role === "AGENCY" ? "/dashboard/agency" : "/trips"} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 mb-6">
           <ArrowLeft className="h-4 w-4" /> Retour
         </Link>
 
         <div className="text-xs font-semibold tracking-widest text-blue-600 uppercase mb-2">Vérification d'identité</div>
-        <h1 className="text-3xl font-extrabold tracking-tight mb-2">Mon KYC</h1>
+        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight mb-2">Mon KYC</h1>
         <p className="text-slate-600 mb-8">
           Télécharge une pièce d'identité valide (CNI, passeport, permis). La vérification est automatique.
         </p>
