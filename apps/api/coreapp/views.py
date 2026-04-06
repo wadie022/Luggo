@@ -239,7 +239,6 @@ class KYCUploadView(APIView):
     → crée ou met à jour le KYCDocument, lance la vérification Claude.
     """
     permission_classes = [IsAuthenticated]
-    parser_classes = [permissions.AllowAny]  # override below
 
     def post(self, request):
         from rest_framework.parsers import MultiPartParser
