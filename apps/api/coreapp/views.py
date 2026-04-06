@@ -537,6 +537,18 @@ class AgencyKYBStatusView(APIView):
 # ✅ AGENCY ENDPOINTS
 # ============================
 
+class AgencyListView(generics.ListAPIView):
+    """GET /api/agencies/ — liste publique des agences vérifiées avec coordonnées."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from .models import Agency as AgencyModel
+        agencies = AgencyModel.objects.filter(kyc_status="VERIFIED").values(
+            "id", "legal_name", "city", "country", "address", "latitude", "longitude"
+        )
+        return Response(list(agencies))
+
+
 class AgencyTripsView(generics.ListAPIView):
     """
     GET /api/agency/trips/

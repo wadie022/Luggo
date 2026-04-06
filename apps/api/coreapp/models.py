@@ -26,6 +26,9 @@ class Agency(models.Model):
     country = models.CharField(max_length=2)           # code pays ISO (FR/BE/ES/CH/I/MA)
     city = models.CharField(max_length=80)             # ville
     kyc_status = models.CharField(max_length=20, default='PENDING')  # statut vérification (KYC)
+    latitude  = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    address   = models.CharField(max_length=255, blank=True)
 
     def __str__(self):
         return f"{self.legal_name} [{self.country}-{self.city}]"
