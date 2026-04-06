@@ -23,6 +23,13 @@ from .serializers import (
     AgencyTripSerializer, AgencyShipmentSerializer, KYCDocumentSerializer, AgencyDocumentSerializer
 )
 from .permissions import IsAgency
+from .emails import (
+    send_welcome_client, send_welcome_agency,
+    send_kyc_submitted, send_kyc_approved, send_kyc_rejected,
+    send_kyb_submitted, send_kyb_approved, send_kyb_rejected,
+    send_shipment_created, send_shipment_accepted, send_shipment_rejected,
+    send_trip_published,
+)
 
 
 @api_view(["GET"])
@@ -144,6 +151,12 @@ class ShipmentCreateView(generics.ListCreateAPIView):
             return Shipment.objects.filter(customer_email=email).order_by("-created_at")
         return Shipment.objects.none()
 
+    def perform_create(self, serializer):
+        shipment = serializer.save()
+        t = shipment.trip
+        route = f"{t.origin_city} ({t.origin_country}) → {t.dest_city} ({t.dest_country})"
+        send_shipment_created(shipment.customer_email, shipment.customer_name, route, shipment.id)
+
 
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
@@ -201,7 +214,9 @@ class TripListView(generics.ListCreateAPIView):
             raise ValidationError("Cet utilisateur n'est lié à aucune agence.")
         if agency.kyc_status != "VERIFIED":
             raise ValidationError("KYC non vérifié. Veuillez soumettre vos documents d'identité avant de publier un trajet.")
-        serializer.save(agency=agency)
+        trip = serializer.save(agency=agency)
+        route = f"{trip.origin_city} ({trip.origin_country}) → {trip.dest_city} ({trip.dest_country})"
+        send_trip_published(self.request.user.email, agency.legal_name, route)
 
 
 # ============================
@@ -246,9 +261,9 @@ class KYCUploadView(APIView):
         result = _verify_id_with_claude(front_bytes, front_mime)
 
         no_api_key = not os.getenv("ANTHROPIC_API_KEY")
+        send_kyc_submitted(request.user.email, request.user.username)
 
         if no_api_key:
-            # Mode manuel : document soumis, en attente de révision admin
             kyc.status = "PENDING"
             kyc.rejection_reason = ""
         elif result.get("is_valid_id"):
@@ -260,6 +275,7 @@ class KYCUploadView(APIView):
             if hasattr(request.user, "agency"):
                 request.user.agency.kyc_status = "VERIFIED"
                 request.user.agency.save(update_fields=["kyc_status"])
+            send_kyc_approved(request.user.email, request.user.username)
         else:
             kyc.status = "REJECTED"
             kyc.rejection_reason = result.get("reason", "Document invalide ou illisible.")
@@ -268,6 +284,7 @@ class KYCUploadView(APIView):
             if hasattr(request.user, "agency"):
                 request.user.agency.kyc_status = "REJECTED"
                 request.user.agency.save(update_fields=["kyc_status"])
+            send_kyc_rejected(request.user.email, request.user.username, kyc.rejection_reason)
 
         kyc.save()
         return Response(KYCDocumentSerializer(kyc).data, status=status.HTTP_200_OK)
@@ -330,6 +347,10 @@ class AdminKYCReviewView(APIView):
 
         kyc.user.kyc_status = new_status
         kyc.user.save(update_fields=["kyc_status"])
+        if new_status == "VERIFIED":
+            send_kyc_approved(kyc.user.email, kyc.user.username)
+        else:
+            send_kyc_rejected(kyc.user.email, kyc.user.username, kyc.rejection_reason)
         return Response(KYCDocumentSerializer(kyc).data)
 
 
@@ -372,6 +393,10 @@ class AdminKYBReviewView(APIView):
 
         kyb.agency.kyc_status = new_status
         kyb.agency.save(update_fields=["kyc_status"])
+        if new_status == "VERIFIED":
+            send_kyb_approved(kyb.agency.user.email, kyb.agency.legal_name)
+        else:
+            send_kyb_rejected(kyb.agency.user.email, kyb.agency.legal_name, kyb.rejection_reason)
         return Response(AgencyDocumentSerializer(kyb).data)
 
 
@@ -410,6 +435,7 @@ class AgencyKYBUploadView(APIView):
 
         no_api_key = not os.getenv("ANTHROPIC_API_KEY")
         result = {} if no_api_key else _verify_business_with_claude(doc_bytes, doc_mime)
+        send_kyb_submitted(agency.user.email, agency.legal_name)
 
         if no_api_key:
             kyb.status = "PENDING"
@@ -651,6 +677,13 @@ class AgencyShipmentStatusView(APIView):
 
         sh.status = new_status
         sh.save()
+
+        t = sh.trip
+        route = f"{t.origin_city} ({t.origin_country}) → {t.dest_city} ({t.dest_country})"
+        if new_status == "ACCEPTED":
+            send_shipment_accepted(sh.customer_email, sh.customer_name, route)
+        elif new_status == "REJECTED":
+            send_shipment_rejected(sh.customer_email, sh.customer_name, route)
 
         return Response(AgencyShipmentSerializer(sh).data, status=status.HTTP_200_OK)
 
