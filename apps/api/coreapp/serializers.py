@@ -29,17 +29,27 @@ class MeSerializer(serializers.ModelSerializer):
 
 
 class KYCDocumentSerializer(serializers.ModelSerializer):
+    user_info = serializers.SerializerMethodField()
+
     class Meta:
         model = KYCDocument
-        fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at")
-        read_only_fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at")
+        fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at", "user_info")
+        read_only_fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at", "user_info")
+
+    def get_user_info(self, obj):
+        return {"username": obj.user.username, "email": obj.user.email}
 
 
 class AgencyDocumentSerializer(serializers.ModelSerializer):
+    agency_name = serializers.SerializerMethodField()
+
     class Meta:
         model = AgencyDocument
-        fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at")
-        read_only_fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at")
+        fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at", "agency_name")
+        read_only_fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at", "agency_name")
+
+    def get_agency_name(self, obj):
+        return obj.agency.legal_name
 
 
 class RegisterSerializer(serializers.ModelSerializer):

@@ -44,7 +44,9 @@ export default function LoginPage() {
       saveRole(me.role);
 
       // 4) redirect auto
-      if (me.role === "AGENCY") {
+      if (me.role === "ADMIN") {
+        router.push("/dashboard/admin");
+      } else if (me.role === "AGENCY") {
         router.push("/dashboard/agency");
       } else if (me.role === "CLIENT" && me.kyc_status !== "VERIFIED") {
         router.push("/profile/kyc");

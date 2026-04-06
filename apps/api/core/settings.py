@@ -146,20 +146,21 @@ STATIC_URL = 'static/'
 # ---------------------------------------------------------------------------
 # Stockage fichiers — Cloudflare R2 en prod, local en dev
 # ---------------------------------------------------------------------------
-_R2_BUCKET = os.getenv('CLOUDFLARE_R2_BUCKET')
+# Variables Railway : R2_BUCKET_NAME, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
+_R2_BUCKET = os.getenv('R2_BUCKET_NAME')
 
 if _R2_BUCKET:
     # Cloudflare R2 (compatible S3)
     DEFAULT_FILE_STORAGE   = 'storages.backends.s3boto3.S3Boto3Storage'
-    AWS_ACCESS_KEY_ID      = os.getenv('CLOUDFLARE_R2_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY  = os.getenv('CLOUDFLARE_R2_SECRET_ACCESS_KEY')
+    AWS_ACCESS_KEY_ID      = os.getenv('R2_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY  = os.getenv('R2_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = _R2_BUCKET
-    AWS_S3_ENDPOINT_URL    = f"https://{os.getenv('CLOUDFLARE_ACCOUNT_ID')}.r2.cloudflarestorage.com"
+    AWS_S3_ENDPOINT_URL    = f"https://{os.getenv('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com"
     AWS_S3_REGION_NAME     = 'auto'
     AWS_DEFAULT_ACL        = 'public-read'
     AWS_S3_FILE_OVERWRITE  = False
-    AWS_QUERYSTRING_AUTH   = False  # URLs publiques directes
-    _r2_domain = os.getenv('CLOUDFLARE_R2_CUSTOM_DOMAIN')
+    AWS_QUERYSTRING_AUTH   = False
+    _r2_domain = os.getenv('R2_CUSTOM_DOMAIN')
     if _r2_domain:
         AWS_S3_CUSTOM_DOMAIN = _r2_domain
         MEDIA_URL = f'https://{_r2_domain}/'

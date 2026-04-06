@@ -245,11 +245,16 @@ class KYCUploadView(APIView):
         # Vérification Claude sur le recto (via bytes en mémoire)
         result = _verify_id_with_claude(front_bytes, front_mime)
 
-        if result.get("is_valid_id"):
+        no_api_key = not os.getenv("ANTHROPIC_API_KEY")
+
+        if no_api_key:
+            # Mode manuel : document soumis, en attente de révision admin
+            kyc.status = "PENDING"
+            kyc.rejection_reason = ""
+        elif result.get("is_valid_id"):
             kyc.status = "VERIFIED"
             kyc.extracted_data = result
             kyc.verified_at = timezone.now()
-            # Propager le statut
             request.user.kyc_status = "VERIFIED"
             request.user.save(update_fields=["kyc_status"])
             if hasattr(request.user, "agency"):
@@ -280,6 +285,94 @@ class KYCStatusView(APIView):
         if kyc is None:
             return Response({"status": "PENDING", "extracted_data": {}, "rejection_reason": ""})
         return Response(KYCDocumentSerializer(kyc).data)
+
+
+# ============================
+# 🛡️ ADMIN — Révision manuelle KYC/KYB
+# ============================
+
+class AdminKYCListView(generics.ListAPIView):
+    """GET /api/admin/kyc/ — liste tous les KYCDocument (admin only)."""
+    permission_classes = [IsAuthenticated]
+    serializer_class   = KYCDocumentSerializer
+
+    def get_queryset(self):
+        if self.request.user.role != "ADMIN":
+            return KYCDocument.objects.none()
+        st = self.request.query_params.get("status")
+        qs = KYCDocument.objects.select_related("user").order_by("-submitted_at")
+        if st:
+            qs = qs.filter(status=st.upper())
+        return qs
+
+
+class AdminKYCReviewView(APIView):
+    """PATCH /api/admin/kyc/<id>/review/ — approuver ou rejeter un KYC."""
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        if request.user.role != "ADMIN":
+            return Response({"detail": "Accès refusé."}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            kyc = KYCDocument.objects.select_related("user").get(pk=pk)
+        except KYCDocument.DoesNotExist:
+            return Response({"detail": "KYC introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        new_status = (request.data.get("status") or "").upper()
+        if new_status not in ("VERIFIED", "REJECTED"):
+            return Response({"detail": "status doit être VERIFIED ou REJECTED."}, status=status.HTTP_400_BAD_REQUEST)
+
+        kyc.status = new_status
+        kyc.rejection_reason = request.data.get("rejection_reason", "")
+        if new_status == "VERIFIED":
+            kyc.verified_at = timezone.now()
+        kyc.save()
+
+        kyc.user.kyc_status = new_status
+        kyc.user.save(update_fields=["kyc_status"])
+        return Response(KYCDocumentSerializer(kyc).data)
+
+
+class AdminKYBListView(generics.ListAPIView):
+    """GET /api/admin/kyb/ — liste tous les AgencyDocument (admin only)."""
+    permission_classes = [IsAuthenticated]
+    serializer_class   = AgencyDocumentSerializer
+
+    def get_queryset(self):
+        if self.request.user.role != "ADMIN":
+            return AgencyDocument.objects.none()
+        st = self.request.query_params.get("status")
+        qs = AgencyDocument.objects.select_related("agency").order_by("-submitted_at")
+        if st:
+            qs = qs.filter(status=st.upper())
+        return qs
+
+
+class AdminKYBReviewView(APIView):
+    """PATCH /api/admin/kyb/<id>/review/ — approuver ou rejeter un KYB."""
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        if request.user.role != "ADMIN":
+            return Response({"detail": "Accès refusé."}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            kyb = AgencyDocument.objects.select_related("agency").get(pk=pk)
+        except AgencyDocument.DoesNotExist:
+            return Response({"detail": "KYB introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        new_status = (request.data.get("status") or "").upper()
+        if new_status not in ("VERIFIED", "REJECTED"):
+            return Response({"detail": "status doit être VERIFIED ou REJECTED."}, status=status.HTTP_400_BAD_REQUEST)
+
+        kyb.status = new_status
+        kyb.rejection_reason = request.data.get("rejection_reason", "")
+        if new_status == "VERIFIED":
+            kyb.verified_at = timezone.now()
+        kyb.save()
+
+        kyb.agency.kyc_status = new_status
+        kyb.agency.save(update_fields=["kyc_status"])
+        return Response(AgencyDocumentSerializer(kyb).data)
 
 
 # ============================
@@ -315,9 +408,13 @@ class AgencyKYBUploadView(APIView):
         kyb.document = doc_file
         kyb.save()
 
-        result = _verify_business_with_claude(doc_bytes, doc_mime)
+        no_api_key = not os.getenv("ANTHROPIC_API_KEY")
+        result = {} if no_api_key else _verify_business_with_claude(doc_bytes, doc_mime)
 
-        if result.get("is_valid_business"):
+        if no_api_key:
+            kyb.status = "PENDING"
+            kyb.rejection_reason = ""
+        elif result.get("is_valid_business"):
             kyb.status = "VERIFIED"
             kyb.extracted_data = result
             kyb.verified_at = timezone.now()
