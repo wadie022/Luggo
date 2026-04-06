@@ -241,29 +241,28 @@ class KYCUploadView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        from rest_framework.parsers import MultiPartParser
-        # Parse manually if needed
         id_front = request.FILES.get("id_front")
         id_back  = request.FILES.get("id_back")
 
         if not id_front:
             return Response({"detail": "id_front requis."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Lire les bytes avant upload (fonctionne local ET R2)
-        front_bytes = id_front.read()
-        front_mime  = id_front.content_type or "image/jpeg"
-        id_front.seek(0)  # rembobiner pour l'upload
+        try:
+            # Lire les bytes avant upload (fonctionne local ET R2)
+            front_bytes = id_front.read()
+            front_mime  = id_front.content_type or "image/jpeg"
+            id_front.seek(0)  # rembobiner pour l'upload
 
-        kyc, _ = KYCDocument.objects.get_or_create(user=request.user)
-        kyc.status = "PENDING"
-        kyc.rejection_reason = ""
-        kyc.extracted_data = {}
-
-        if id_front:
+            kyc, _ = KYCDocument.objects.get_or_create(user=request.user)
+            kyc.status = "PENDING"
+            kyc.rejection_reason = ""
+            kyc.extracted_data = {}
             kyc.id_front = id_front
-        if id_back:
-            kyc.id_back = id_back
-        kyc.save()
+            if id_back:
+                kyc.id_back = id_back
+            kyc.save()
+        except Exception as e:
+            return Response({"detail": f"Erreur sauvegarde fichier : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # Vérification Claude sur le recto (via bytes en mémoire)
         result = _verify_id_with_claude(front_bytes, front_mime)

@@ -10,7 +10,7 @@ import NotificationBell from "@/components/NotificationBell";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
-type Agency = {
+type AgencyRaw = {
   id: number;
   legal_name: string;
   city: string;
@@ -22,7 +22,7 @@ type Agency = {
 
 export default function MapPage() {
   const router = useRouter();
-  const [agencies, setAgencies] = useState<Agency[]>([]);
+  const [agencies, setAgencies] = useState<AgencyRaw[]>([]);
   const [loading, setLoading] = useState(true);
   const role = typeof window === "undefined" ? null : getRole();
 
@@ -38,7 +38,10 @@ export default function MapPage() {
       .finally(() => setLoading(false));
   }, [router]);
 
-  const mappable = agencies.filter((a) => a.latitude && a.longitude);
+  const mappable = agencies.filter(
+    (a): a is AgencyRaw & { latitude: number; longitude: number } =>
+      a.latitude !== null && a.longitude !== null
+  );
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
@@ -78,7 +81,7 @@ export default function MapPage() {
             <div className="flex flex-col gap-3 overflow-y-auto max-h-[480px] pr-1">
               {agencies.length === 0 ? (
                 <p className="text-slate-400 text-sm">Aucune agence vérifiée pour le moment.</p>
-              ) : agencies.map((a) => (
+              ) : agencies.map((a: AgencyRaw) => (
                 <div key={a.id} className="rounded-2xl border border-slate-200 bg-white p-4 hover:border-blue-200 hover:shadow-sm transition">
                   <div className="font-semibold text-slate-900 text-sm">{a.legal_name}</div>
                   <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
