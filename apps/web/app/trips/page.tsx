@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, getAccessToken, getRole, logout, fetchMe, authHeader } from "@/lib/api";
 import { MapPin, Package, Calendar, ArrowRight, Menu, X } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
 
 type Trip = {
   id: number;
@@ -107,6 +108,7 @@ export default function TripsPage() {
             <button onClick={handleLogout} className="hidden md:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
               Déconnexion
             </button>
+            <NotificationBell />
             <Link href="/profile" className="flex items-center">
               <div className="h-9 w-9 rounded-full overflow-hidden bg-blue-500 flex items-center justify-center ring-2 ring-slate-700 hover:ring-blue-400 transition">
                 {avatarUrl ? (

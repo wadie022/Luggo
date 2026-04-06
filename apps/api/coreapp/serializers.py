@@ -1,7 +1,7 @@
 # coreapp/serializers.py
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from .models import User, Trip, Shipment, Agency, KYCDocument, AgencyDocument
+from .models import User, Trip, Shipment, Agency, KYCDocument, AgencyDocument, Notification
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 
@@ -146,3 +146,10 @@ class AgencyShipmentSerializer(serializers.ModelSerializer):
             "price_per_kg": t.price_per_kg,
             "departure_at": t.departure_at,
         }
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ("id", "title", "message", "link", "is_read", "created_at")
+        read_only_fields = ("id", "title", "message", "link", "created_at")

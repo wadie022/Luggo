@@ -7,6 +7,7 @@ from .views import (
     KYCUploadView, KYCStatusView,
     AgencyKYBUploadView, AgencyKYBStatusView,
     AdminKYCListView, AdminKYCReviewView, AdminKYBListView, AdminKYBReviewView,
+    NotificationListView, NotificationUnreadCountView, NotificationReadView, NotificationReadAllView,
     AgencyTripsView, AgencyTripEditView, AgencyShipmentsView, AgencyShipmentStatusView, AgencyStatsView
 )
 
@@ -19,6 +20,12 @@ urlpatterns = [
 
     path("me/", MeView.as_view(), name="me"),
     path("me/avatar/", AvatarUploadView.as_view(), name="me-avatar"),
+
+    # Notifications
+    path("notifications/", NotificationListView.as_view(), name="notifications"),
+    path("notifications/unread-count/", NotificationUnreadCountView.as_view(), name="notifications-unread"),
+    path("notifications/<int:pk>/read/", NotificationReadView.as_view(), name="notification-read"),
+    path("notifications/read-all/", NotificationReadAllView.as_view(), name="notifications-read-all"),
 
     path("trips/", TripListView.as_view(), name="trip-list"),
     path("trips/<int:pk>/", TripDetailView.as_view(), name="trip-detail"),

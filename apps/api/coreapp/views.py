@@ -17,10 +17,11 @@ import mimetypes
 import re as _re
 from django.utils import timezone
 
-from .models import Trip, Shipment, KYCDocument, AgencyDocument
+from .models import Trip, Shipment, KYCDocument, AgencyDocument, Notification
 from .serializers import (
     RegisterSerializer, TripSerializer, ShipmentSerializer, MeSerializer,
-    AgencyTripSerializer, AgencyShipmentSerializer, KYCDocumentSerializer, AgencyDocumentSerializer
+    AgencyTripSerializer, AgencyShipmentSerializer, KYCDocumentSerializer,
+    AgencyDocumentSerializer, NotificationSerializer
 )
 from .permissions import IsAgency
 from .emails import (
@@ -35,6 +36,14 @@ from .emails import (
 @api_view(["GET"])
 def healthz(request):
     return Response({"ok": True})
+
+
+def notify(user, title: str, message: str = "", link: str = ""):
+    """Crée une notification in-app pour un utilisateur."""
+    try:
+        Notification.objects.create(user=user, title=title, message=message, link=link)
+    except Exception:
+        pass
 
 
 # ============================
@@ -276,6 +285,7 @@ class KYCUploadView(APIView):
                 request.user.agency.kyc_status = "VERIFIED"
                 request.user.agency.save(update_fields=["kyc_status"])
             send_kyc_approved(request.user.email, request.user.username)
+            notify(request.user, "Identité vérifiée ✅", "Ton document d'identité a été validé.", "/trips")
         else:
             kyc.status = "REJECTED"
             kyc.rejection_reason = result.get("reason", "Document invalide ou illisible.")
@@ -285,6 +295,7 @@ class KYCUploadView(APIView):
                 request.user.agency.kyc_status = "REJECTED"
                 request.user.agency.save(update_fields=["kyc_status"])
             send_kyc_rejected(request.user.email, request.user.username, kyc.rejection_reason)
+            notify(request.user, "Document KYC rejeté ❌", kyc.rejection_reason or "Document invalide.", "/profile/kyc")
 
         kyc.save()
         return Response(KYCDocumentSerializer(kyc).data, status=status.HTTP_200_OK)
@@ -302,6 +313,51 @@ class KYCStatusView(APIView):
         if kyc is None:
             return Response({"status": "PENDING", "extracted_data": {}, "rejection_reason": ""})
         return Response(KYCDocumentSerializer(kyc).data)
+
+
+# ============================
+# 🔔 NOTIFICATIONS
+# ============================
+
+class NotificationListView(generics.ListAPIView):
+    """GET /api/notifications/ — liste les notifs de l'utilisateur connecté."""
+    permission_classes = [IsAuthenticated]
+    serializer_class   = NotificationSerializer
+
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user)[:50]
+
+
+class NotificationUnreadCountView(APIView):
+    """GET /api/notifications/unread-count/"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        count = Notification.objects.filter(user=request.user, is_read=False).count()
+        return Response({"count": count})
+
+
+class NotificationReadView(APIView):
+    """PATCH /api/notifications/<id>/read/ — marque une notif comme lue."""
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        try:
+            notif = Notification.objects.get(pk=pk, user=request.user)
+        except Notification.DoesNotExist:
+            return Response({"detail": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        notif.is_read = True
+        notif.save(update_fields=["is_read"])
+        return Response({"ok": True})
+
+
+class NotificationReadAllView(APIView):
+    """PATCH /api/notifications/read-all/ — marque toutes les notifs comme lues."""
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+        return Response({"ok": True})
 
 
 # ============================
@@ -349,8 +405,10 @@ class AdminKYCReviewView(APIView):
         kyc.user.save(update_fields=["kyc_status"])
         if new_status == "VERIFIED":
             send_kyc_approved(kyc.user.email, kyc.user.username)
+            notify(kyc.user, "Identité vérifiée ✅", "Ton document d'identité a été validé.", "/trips")
         else:
             send_kyc_rejected(kyc.user.email, kyc.user.username, kyc.rejection_reason)
+            notify(kyc.user, "Document KYC rejeté ❌", kyc.rejection_reason or "Document invalide.", "/profile/kyc")
         return Response(KYCDocumentSerializer(kyc).data)
 
 
@@ -395,8 +453,10 @@ class AdminKYBReviewView(APIView):
         kyb.agency.save(update_fields=["kyc_status"])
         if new_status == "VERIFIED":
             send_kyb_approved(kyb.agency.user.email, kyb.agency.legal_name)
+            notify(kyb.agency.user, "Entreprise vérifiée ✅", f"{kyb.agency.legal_name} a été validée.", "/dashboard/agency")
         else:
             send_kyb_rejected(kyb.agency.user.email, kyb.agency.legal_name, kyb.rejection_reason)
+            notify(kyb.agency.user, "Document KYB rejeté ❌", kyb.rejection_reason or "Document invalide.", "/dashboard/agency/kyb")
         return Response(AgencyDocumentSerializer(kyb).data)
 
 
@@ -682,8 +742,21 @@ class AgencyShipmentStatusView(APIView):
         route = f"{t.origin_city} ({t.origin_country}) → {t.dest_city} ({t.dest_country})"
         if new_status == "ACCEPTED":
             send_shipment_accepted(sh.customer_email, sh.customer_name, route)
+            # notif si le client a un compte
+            try:
+                from .models import User as U
+                u = U.objects.get(email=sh.customer_email)
+                notify(u, "Colis accepté ✅", f"Ton colis sur {route} a été accepté.", "/mes-colis")
+            except Exception:
+                pass
         elif new_status == "REJECTED":
             send_shipment_rejected(sh.customer_email, sh.customer_name, route)
+            try:
+                from .models import User as U
+                u = U.objects.get(email=sh.customer_email)
+                notify(u, "Colis refusé ❌", f"Ta demande sur {route} a été refusée.", "/trips")
+            except Exception:
+                pass
 
         return Response(AgencyShipmentSerializer(sh).data, status=status.HTTP_200_OK)
 

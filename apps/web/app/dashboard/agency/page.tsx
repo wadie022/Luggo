@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, fetchMe, authHeader, logout } from "@/lib/api";
 import { Pencil, Trash2, ShieldAlert } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
 
 type Trip = {
   id: number;
@@ -245,6 +246,7 @@ function TopBar() {
             <span className="hidden sm:inline">Publier</span>
             <span className="sm:hidden">+</span>
           </Link>
+          <NotificationBell />
           <button onClick={handleLogout} className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
             Déconnexion
           </button>

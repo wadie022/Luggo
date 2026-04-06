@@ -48,6 +48,21 @@ class KYCDocument(models.Model):
         return f"KYC {self.user.username} → {self.status}"
 
 
+class Notification(models.Model):
+    user       = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    title      = models.CharField(max_length=200)
+    message    = models.TextField(blank=True)
+    link       = models.CharField(max_length=200, blank=True)
+    is_read    = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"[{'lu' if self.is_read else 'non lu'}] {self.user.username}: {self.title}"
+
+
 class AgencyDocument(models.Model):
     """Vérification d'entreprise (KYB) — pour les agences (Kbis / Registre de Commerce)."""
     agency = models.OneToOneField(Agency, on_delete=models.CASCADE, related_name='kyb_doc')
