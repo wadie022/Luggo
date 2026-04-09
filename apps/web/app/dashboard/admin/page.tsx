@@ -12,7 +12,9 @@ type KYCItem = {
   rejection_reason: string;
   submitted_at: string;
   verified_at: string | null;
-  user?: { username: string; email: string };
+  user_info?: { username: string; email: string };
+  id_front_url?: string | null;
+  id_back_url?: string | null;
 };
 
 type KYBItem = {
@@ -21,7 +23,8 @@ type KYBItem = {
   rejection_reason: string;
   submitted_at: string;
   verified_at: string | null;
-  agency?: { legal_name: string };
+  agency_name?: string;
+  document_url?: string | null;
 };
 
 const STATUS_BADGE: Record<string, string> = {
@@ -130,10 +133,11 @@ export default function AdminDashboard() {
             <DocCard
               key={item.id}
               id={item.id}
-              title={`Client — ${(item as any).user_info?.username ?? `#${item.id}`}`}
-              subtitle={(item as any).user_info?.email ?? ""}
+              title={`Client — ${item.user_info?.username ?? `#${item.id}`}`}
+              subtitle={item.user_info?.email ?? ""}
               status={item.status}
               submittedAt={item.submitted_at}
+              docUrls={[item.id_front_url, item.id_back_url].filter(Boolean) as string[]}
               onApprove={() => reviewKYC(item.id, "VERIFIED")}
               onReject={() => {
                 const r = prompt("Raison du rejet :");
@@ -151,10 +155,11 @@ export default function AdminDashboard() {
             <DocCard
               key={item.id}
               id={item.id}
-              title={`Agence — ${(item as any).agency_name ?? `#${item.id}`}`}
+              title={`Agence — ${item.agency_name ?? `#${item.id}`}`}
               subtitle=""
               status={item.status}
               submittedAt={item.submitted_at}
+              docUrls={item.document_url ? [item.document_url] : []}
               onApprove={() => reviewKYB(item.id, "VERIFIED")}
               onReject={() => {
                 const r = prompt("Raison du rejet :");
@@ -179,37 +184,57 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
   );
 }
 
-function DocCard({ id, title, subtitle, status, submittedAt, onApprove, onReject }: {
+function DocCard({ id, title, subtitle, status, submittedAt, docUrls, onApprove, onReject }: {
   id: number; title: string; subtitle: string; status: string;
-  submittedAt: string; onApprove: () => void; onReject: () => void;
+  submittedAt: string; docUrls: string[]; onApprove: () => void; onReject: () => void;
 }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-      <div className="flex-1 min-w-0">
-        <div className="font-semibold text-slate-900">{title}</div>
-        {subtitle && <div className="text-sm text-slate-500">{subtitle}</div>}
-        <div className="text-xs text-slate-400 mt-1">
-          Soumis le {new Date(submittedAt).toLocaleDateString("fr-FR")} à {new Date(submittedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 flex flex-col gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-slate-900">{title}</div>
+          {subtitle && <div className="text-sm text-slate-500">{subtitle}</div>}
+          <div className="text-xs text-slate-400 mt-1">
+            Soumis le {new Date(submittedAt).toLocaleDateString("fr-FR")} à {new Date(submittedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+          </div>
         </div>
+        <div className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold ${STATUS_BADGE[status] ?? STATUS_BADGE.PENDING}`}>
+          {status === "VERIFIED" ? <ShieldCheck className="h-3.5 w-3.5" /> : status === "REJECTED" ? <ShieldX className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
+          {status}
+        </div>
+        {status === "PENDING" && (
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={onApprove}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold"
+            >
+              <CheckCircle2 className="h-4 w-4" /> Approuver
+            </button>
+            <button
+              onClick={onReject}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-sm font-semibold"
+            >
+              <XCircle className="h-4 w-4" /> Rejeter
+            </button>
+          </div>
+        )}
       </div>
-      <div className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold ${STATUS_BADGE[status] ?? STATUS_BADGE.PENDING}`}>
-        {status === "VERIFIED" ? <ShieldCheck className="h-3.5 w-3.5" /> : status === "REJECTED" ? <ShieldX className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
-        {status}
-      </div>
-      {status === "PENDING" && (
-        <div className="flex gap-2 shrink-0">
-          <button
-            onClick={onApprove}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold"
-          >
-            <CheckCircle2 className="h-4 w-4" /> Approuver
-          </button>
-          <button
-            onClick={onReject}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-sm font-semibold"
-          >
-            <XCircle className="h-4 w-4" /> Rejeter
-          </button>
+
+      {/* Documents */}
+      {docUrls.length > 0 && (
+        <div className="flex flex-wrap gap-3">
+          {docUrls.map((url, i) => (
+            <a
+              key={i}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 text-sm font-semibold text-slate-700 hover:text-blue-700 transition"
+            >
+              <Eye className="h-4 w-4" />
+              {docUrls.length > 1 ? (i === 0 ? "Recto" : "Verso") : "Voir le document"}
+            </a>
+          ))}
         </div>
       )}
     </div>

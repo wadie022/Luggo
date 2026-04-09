@@ -30,26 +30,53 @@ class MeSerializer(serializers.ModelSerializer):
 
 class KYCDocumentSerializer(serializers.ModelSerializer):
     user_info = serializers.SerializerMethodField()
+    id_front_url = serializers.SerializerMethodField()
+    id_back_url = serializers.SerializerMethodField()
 
     class Meta:
         model = KYCDocument
-        fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at", "user_info")
-        read_only_fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at", "user_info")
+        fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at", "user_info", "id_front_url", "id_back_url")
+        read_only_fields = fields
 
     def get_user_info(self, obj):
         return {"username": obj.user.username, "email": obj.user.email}
 
+    def get_id_front_url(self, obj):
+        if obj.id_front:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.id_front.url)
+            return obj.id_front.url
+        return None
+
+    def get_id_back_url(self, obj):
+        if obj.id_back:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.id_back.url)
+            return obj.id_back.url
+        return None
+
 
 class AgencyDocumentSerializer(serializers.ModelSerializer):
     agency_name = serializers.SerializerMethodField()
+    document_url = serializers.SerializerMethodField()
 
     class Meta:
         model = AgencyDocument
-        fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at", "agency_name")
-        read_only_fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at", "agency_name")
+        fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at", "agency_name", "document_url")
+        read_only_fields = fields
 
     def get_agency_name(self, obj):
         return obj.agency.legal_name
+
+    def get_document_url(self, obj):
+        if obj.document:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.document.url)
+            return obj.document.url
+        return None
 
 
 class RegisterSerializer(serializers.ModelSerializer):
