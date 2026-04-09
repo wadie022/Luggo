@@ -47,11 +47,12 @@ export default function LoginPage() {
       if (me.role === "ADMIN") {
         router.push("/dashboard/admin");
       } else if (me.role === "AGENCY") {
-        router.push("/dashboard/agency");
-      } else if (me.role === "CLIENT" && me.kyc_status !== "VERIFIED") {
-        router.push("/profile/kyc");
+        if (me.kyc_status !== "VERIFIED") router.push("/dashboard/agency/kyb");
+        else router.push("/dashboard/agency");
       } else {
-        router.push("/trips");
+        // CLIENT
+        if (me.kyc_status !== "VERIFIED") router.push("/profile/kyc");
+        else router.push("/trips");
       }
     } catch (err: any) {
       setErrorMsg(err?.message || "Erreur inconnue");

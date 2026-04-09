@@ -54,6 +54,7 @@ export default function KYCPage() {
   const [kycData, setKycData]         = useState<KYCData | null>(null);
   const [submitting, setSubmitting]   = useState(false);
   const [errorMsg, setErrorMsg]       = useState<string | null>(null);
+  const [successMsg, setSuccessMsg]   = useState<string | null>(null);
   const [frontPreview, setFrontPreview] = useState<string | null>(null);
   const [backPreview, setBackPreview]   = useState<string | null>(null);
 
@@ -83,23 +84,39 @@ export default function KYCPage() {
 
     setSubmitting(true);
     setErrorMsg(null);
+    setSuccessMsg(null);
 
     const form = new FormData();
     form.append("id_front", front);
     const back = backRef.current?.files?.[0];
     if (back) form.append("id_back", back);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     try {
       const res = await fetch(`${API_BASE}/kyc/upload/`, {
         method: "POST",
         headers: authHeader(),
         body: form,
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.detail || "Erreur lors de l'upload.");
       setKycData(data as KYCData);
+      if ((data as KYCData).status === "VERIFIED") {
+        setSuccessMsg("Identité vérifiée avec succès !");
+      } else {
+        setSuccessMsg("Document soumis. En attente de vérification.");
+      }
     } catch (err: any) {
-      setErrorMsg(err.message);
+      clearTimeout(timeoutId);
+      if (err.name === "AbortError") {
+        setErrorMsg("Délai dépassé (30s). Vérifie ta connexion et réessaie.");
+      } else {
+        setErrorMsg(err.message || "Erreur lors de l'upload.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -202,6 +219,12 @@ export default function KYCPage() {
             {errorMsg && (
               <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 mb-4 flex items-center gap-2">
                 <XCircle className="h-4 w-4 shrink-0" />{errorMsg}
+              </div>
+            )}
+
+            {successMsg && (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 mb-4 flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />{successMsg}
               </div>
             )}
 

@@ -59,12 +59,14 @@ export default function RegisterPage() {
       saveRole(me.role);
 
       // 4) redirect
-      if (me.role === "AGENCY") {
-        router.push("/dashboard/agency");
-      } else if (me.role === "CLIENT") {
-        router.push("/profile/kyc");
+      if (me.role === "ADMIN") {
+        router.push("/dashboard/admin");
+      } else if (me.role === "AGENCY") {
+        if (me.kyc_status !== "VERIFIED") router.push("/dashboard/agency/kyb");
+        else router.push("/dashboard/agency");
       } else {
-        router.push("/trips");
+        // CLIENT
+        router.push("/profile/kyc");
       }
     } catch (err: any) {
       setErrorMsg(err?.message || "Erreur inconnue");
