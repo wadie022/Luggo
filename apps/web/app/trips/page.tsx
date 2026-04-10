@@ -3,9 +3,22 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { API_BASE, getAccessToken, getRole, logout, fetchMe, authHeader } from "@/lib/api";
-import { MapPin, Package, Calendar, ArrowRight, Menu, X } from "lucide-react";
+import { MapPin, Package, Calendar, ArrowRight, Menu, X, LocateFixed } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
+
+const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
+
+type AgencyMap = {
+  id: number;
+  legal_name: string;
+  city: string;
+  country: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+};
 
 type Trip = {
   id: number;
@@ -30,6 +43,18 @@ export default function TripsPage() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [username, setUsername] = useState<string>("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [agencies, setAgencies] = useState<AgencyMap[]>([]);
+  const [userPos, setUserPos] = useState<[number, number] | null>(null);
+  const [locating, setLocating] = useState(false);
+
+  function handleLocate() {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setUserPos([pos.coords.latitude, pos.coords.longitude]); setLocating(false); },
+      () => setLocating(false)
+    );
+  }
 
   // Guard: must be logged in
   useEffect(() => {
@@ -63,6 +88,10 @@ export default function TripsPage() {
 
   useEffect(() => {
     fetchTrips();
+    fetch(`${API_BASE}/agencies/`)
+      .then((r) => r.json())
+      .then((data) => setAgencies(data.filter((a: any) => a.latitude && a.longitude)))
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -182,6 +211,30 @@ export default function TripsPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* MAP */}
+      <section className="mx-auto max-w-6xl px-4 py-8">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <div className="text-xs font-semibold tracking-widest text-blue-600 uppercase mb-1">Réseau Luggo</div>
+            <h2 className="text-xl font-extrabold text-slate-900">Agences partenaires</h2>
+          </div>
+          <button
+            onClick={handleLocate}
+            disabled={locating}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold shadow-sm transition"
+          >
+            <LocateFixed className="h-4 w-4" />
+            {locating ? "Localisation…" : "Me localiser"}
+          </button>
+        </div>
+        <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-sm" style={{ height: 360 }}>
+          <MapView agencies={agencies} userLocation={userPos} />
+        </div>
+        {agencies.length === 0 && (
+          <p className="text-slate-400 text-sm mt-3 text-center">Aucune agence avec coordonnées pour le moment.</p>
+        )}
       </section>
 
       {/* RESULTS */}
