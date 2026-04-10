@@ -150,18 +150,29 @@ STATIC_URL = 'static/'
 _R2_BUCKET = os.getenv('R2_BUCKET_NAME')
 
 if _R2_BUCKET:
-    # Cloudflare R2 (compatible S3)
-    DEFAULT_FILE_STORAGE    = 'storages.backends.s3boto3.S3Boto3Storage'
-    AWS_ACCESS_KEY_ID       = os.getenv('R2_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY   = os.getenv('R2_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = _R2_BUCKET
-    AWS_S3_ENDPOINT_URL     = f"https://{os.getenv('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com"
-    AWS_S3_REGION_NAME      = 'auto'
-    AWS_DEFAULT_ACL         = None
-    AWS_S3_FILE_OVERWRITE   = False
-    AWS_QUERYSTRING_AUTH    = False
-    AWS_S3_CUSTOM_DOMAIN    = os.getenv('R2_CUSTOM_DOMAIN')
-    MEDIA_URL               = f"https://{os.getenv('R2_CUSTOM_DOMAIN')}/"
+    # Cloudflare R2 — format Django 4.2+ / 5.x
+    _r2_endpoint = f"https://{os.getenv('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com"
+    _r2_domain   = os.getenv('R2_CUSTOM_DOMAIN')
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+            "OPTIONS": {
+                "access_key":       os.getenv('R2_ACCESS_KEY_ID'),
+                "secret_key":       os.getenv('R2_SECRET_ACCESS_KEY'),
+                "bucket_name":      _R2_BUCKET,
+                "endpoint_url":     _r2_endpoint,
+                "region_name":      "auto",
+                "default_acl":      None,
+                "file_overwrite":   False,
+                "querystring_auth": False,
+                **({"custom_domain": _r2_domain} if _r2_domain else {}),
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+    MEDIA_URL = f"https://{_r2_domain}/" if _r2_domain else f"{_r2_endpoint}/{_R2_BUCKET}/"
 else:
     # Stockage local (dev)
     MEDIA_URL  = '/media/'
