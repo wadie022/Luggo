@@ -111,18 +111,37 @@ class Trip(models.Model):
 # -----------------------------------------
 # Réservation d'envoi (faite par un client)
 # -----------------------------------------
+TRACKING_STATUS = [
+    ("PENDING",    "En attente agence"),
+    ("ACCEPTED",   "Accepté"),
+    ("REJECTED",   "Rejeté"),
+    ("DEPOSITED",  "Déposé au bureau de départ"),
+    ("IN_TRANSIT", "En transit"),
+    ("ARRIVED",    "Arrivé au bureau de destination"),
+    ("DELIVERED",  "Livré"),
+]
+
+DELIVERY_TYPE = [
+    ("PICKUP",        "Retrait au bureau"),
+    ("HOME_DELIVERY", "Livraison à domicile"),
+]
+
 class Shipment(models.Model):
     trip = models.ForeignKey("Trip", on_delete=models.CASCADE, related_name="shipments")
+    user = models.ForeignKey("User", null=True, blank=True, on_delete=models.SET_NULL, related_name="shipments")
 
-    customer_name = models.CharField(max_length=255)
+    customer_name  = models.CharField(max_length=255)
     customer_email = models.EmailField(blank=False, default="")
     customer_phone = models.CharField(max_length=50, blank=False, default="")
 
-    weight_kg = models.FloatField()
+    weight_kg   = models.FloatField()
     description = models.TextField(blank=True, default="")
 
+    delivery_type    = models.CharField(max_length=20, choices=DELIVERY_TYPE, default="PICKUP")
+    delivery_address = models.TextField(blank=True, default="")
+
     created_at = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, default="PENDING")
+    status = models.CharField(max_length=20, choices=TRACKING_STATUS, default="PENDING")
 
     def __str__(self):
         return f"{self.customer_name} ({self.weight_kg}kg) → trip {self.trip_id}"

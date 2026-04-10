@@ -10,7 +10,7 @@ from .views import (
     NotificationListView, NotificationUnreadCountView, NotificationReadView, NotificationReadAllView,
     AgencyListView,
     AgencyTripsView, AgencyTripEditView, AgencyShipmentsView, AgencyShipmentStatusView, AgencyStatsView,
-    AgencyProfileView
+    AgencyProfileView, ShipmentTrackingView
 )
 
 urlpatterns = [
@@ -35,6 +35,7 @@ urlpatterns = [
 
     path("shipments/", ShipmentCreateView.as_view(), name="shipment-create"),
     path("shipments/<int:pk>/", ShipmentClientView.as_view(), name="shipment-client"),
+    path("shipments/<int:pk>/tracking/", ShipmentTrackingView.as_view(), name="shipment-tracking"),
 
     # KYC
     path("kyc/upload/", KYCUploadView.as_view(), name="kyc-upload"),

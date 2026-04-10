@@ -29,6 +29,7 @@ from .emails import (
     send_kyc_submitted, send_kyc_approved, send_kyc_rejected,
     send_kyb_submitted, send_kyb_approved, send_kyb_rejected,
     send_shipment_created, send_shipment_accepted, send_shipment_rejected,
+    send_shipment_deposited, send_shipment_in_transit, send_shipment_arrived, send_shipment_delivered,
     send_trip_published,
 )
 
@@ -152,16 +153,18 @@ def _verify_business_with_claude(file_bytes: bytes, mime: str) -> dict:
 
 class ShipmentCreateView(generics.ListCreateAPIView):
     serializer_class = ShipmentSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        email = self.request.query_params.get("email", "").strip()
-        if email:
-            return Shipment.objects.filter(customer_email=email).order_by("-created_at")
-        return Shipment.objects.none()
+        return Shipment.objects.filter(user=self.request.user).select_related("trip", "trip__agency").order_by("-created_at")
 
     def perform_create(self, serializer):
-        shipment = serializer.save()
+        user = self.request.user
+        shipment = serializer.save(
+            user=user,
+            customer_name=user.get_full_name() or user.username,
+            customer_email=user.email,
+        )
         t = shipment.trip
         route = f"{t.origin_city} ({t.origin_country}) → {t.dest_city} ({t.dest_country})"
         send_shipment_created(shipment.customer_email, shipment.customer_name, route, shipment.id)
@@ -688,56 +691,105 @@ class AgencyTripEditView(APIView):
 
 class ShipmentClientView(APIView):
     """
-    PATCH /api/shipments/<id>/  — modifier poids/description/téléphone si PENDING
+    GET    /api/shipments/<id>/  — détail d'un colis
     DELETE /api/shipments/<id>/ — supprimer si PENDING
-    Ownership vérifié via customer_email dans le body.
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsAuthenticated]
 
-    def _get_shipment(self, pk, email):
+    def _get_shipment(self, pk, user):
         try:
-            return Shipment.objects.get(pk=pk, customer_email=email)
+            return Shipment.objects.select_related("trip", "trip__agency").get(pk=pk, user=user)
         except Shipment.DoesNotExist:
             return None
 
-    def patch(self, request, pk):
-        email = (request.data.get("customer_email") or "").strip()
-        if not email:
-            return Response({"detail": "customer_email requis."}, status=status.HTTP_400_BAD_REQUEST)
-
-        sh = self._get_shipment(pk, email)
+    def get(self, request, pk):
+        sh = self._get_shipment(pk, request.user)
         if sh is None:
-            return Response({"detail": "Colis introuvable ou email incorrect."}, status=status.HTTP_404_NOT_FOUND)
-
-        if sh.status != "PENDING":
-            return Response(
-                {"detail": f"Modification impossible : le colis est {sh.status}."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        for field in ("weight_kg", "description", "customer_phone"):
-            if field in request.data:
-                setattr(sh, field, request.data[field])
-        sh.save()
-        return Response(ShipmentSerializer(sh).data, status=status.HTTP_200_OK)
+            return Response({"detail": "Colis introuvable."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(ShipmentSerializer(sh).data)
 
     def delete(self, request, pk):
-        email = (request.data.get("customer_email") or "").strip()
-        if not email:
-            return Response({"detail": "customer_email requis."}, status=status.HTTP_400_BAD_REQUEST)
-
-        sh = self._get_shipment(pk, email)
+        sh = self._get_shipment(pk, request.user)
         if sh is None:
-            return Response({"detail": "Colis introuvable ou email incorrect."}, status=status.HTTP_404_NOT_FOUND)
-
+            return Response({"detail": "Colis introuvable."}, status=status.HTTP_404_NOT_FOUND)
         if sh.status != "PENDING":
-            return Response(
-                {"detail": f"Suppression impossible : le colis est {sh.status}."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
+            return Response({"detail": f"Suppression impossible : le colis est {sh.status}."}, status=400)
         sh.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ShipmentTrackingView(APIView):
+    """
+    PATCH /api/shipments/<id>/tracking/
+    Client  : peut passer à DEPOSITED (confirme dépôt)
+    Agence  : peut passer à ACCEPTED, REJECTED, IN_TRANSIT, ARRIVED, DELIVERED
+    """
+    permission_classes = [IsAuthenticated]
+
+    TRACKING_EMAILS = {
+        "DEPOSITED":  lambda sh, route: send_shipment_deposited(sh.customer_email, sh.customer_name, route),
+        "IN_TRANSIT": lambda sh, route: send_shipment_in_transit(sh.customer_email, sh.customer_name, route),
+        "ARRIVED":    lambda sh, route: send_shipment_arrived(sh.customer_email, sh.customer_name, route, sh.delivery_type),
+        "DELIVERED":  lambda sh, route: send_shipment_delivered(sh.customer_email, sh.customer_name, route),
+        "ACCEPTED":   lambda sh, route: send_shipment_accepted(sh.customer_email, sh.customer_name, route),
+        "REJECTED":   lambda sh, route: send_shipment_rejected(sh.customer_email, sh.customer_name, route),
+    }
+
+    NOTIFY_MESSAGES = {
+        "ACCEPTED":   ("Colis accepté ✅", "Ton envoi a été accepté par l'agence."),
+        "REJECTED":   ("Colis refusé ❌", "Ton envoi a été refusé par l'agence."),
+        "DEPOSITED":  ("Dépôt confirmé 📦", "Ton colis a été déposé au bureau de départ."),
+        "IN_TRANSIT": ("Colis en transit 🚚", "Ton colis est en route vers la destination."),
+        "ARRIVED":    ("Colis arrivé 🎉", "Ton colis est arrivé au bureau de destination."),
+        "DELIVERED":  ("Colis livré ✅", "Ton colis a été livré avec succès."),
+    }
+
+    def patch(self, request, pk):
+        new_status = request.data.get("status", "").upper()
+        user = request.user
+
+        try:
+            sh = Shipment.objects.select_related("trip", "trip__agency", "user").get(pk=pk)
+        except Shipment.DoesNotExist:
+            return Response({"detail": "Colis introuvable."}, status=404)
+
+        # Permissions
+        is_agency = user.role == "AGENCY" and hasattr(user, "agency") and sh.trip.agency == user.agency
+        is_client = sh.user == user
+
+        if not is_agency and not is_client:
+            return Response({"detail": "Accès refusé."}, status=403)
+
+        # Transitions autorisées
+        client_allowed  = {"DEPOSITED"}
+        agency_allowed  = {"ACCEPTED", "REJECTED", "IN_TRANSIT", "ARRIVED", "DELIVERED"}
+
+        if is_client and new_status not in client_allowed:
+            return Response({"detail": f"Action non autorisée pour un client."}, status=400)
+        if is_agency and new_status not in agency_allowed:
+            return Response({"detail": f"Action non autorisée pour une agence."}, status=400)
+
+        sh.status = new_status
+        sh.save(update_fields=["status"])
+
+        t = sh.trip
+        route = f"{t.origin_city} ({t.origin_country}) → {t.dest_city} ({t.dest_country})"
+
+        # Email
+        email_fn = self.TRACKING_EMAILS.get(new_status)
+        if email_fn:
+            try:
+                email_fn(sh, route)
+            except Exception:
+                pass
+
+        # Notification in-app
+        if sh.user:
+            msg = self.NOTIFY_MESSAGES.get(new_status)
+            if msg:
+                notify(sh.user, msg[0], msg[1], "/mes-colis")
+
+        return Response(ShipmentSerializer(sh).data)
 
 
 class AgencyShipmentsView(generics.ListAPIView):

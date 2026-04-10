@@ -130,7 +130,13 @@ export default function AgencyTripsPage() {
             <p className="mt-1 text-slate-600 text-sm md:text-base">Liste des trajets publiés par ton agence.</p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Link
+              href="/dashboard/agency/profile"
+              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-sm font-semibold"
+            >
+              Mon profil & carte
+            </Link>
             <button
               onClick={load}
               className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-sm font-semibold"

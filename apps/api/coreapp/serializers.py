@@ -105,20 +105,39 @@ class TripSerializer(serializers.ModelSerializer):
 
 
 class ShipmentSerializer(serializers.ModelSerializer):
+    trip_detail = serializers.SerializerMethodField()
+
     class Meta:
         model = Shipment
         fields = [
             "id",
             "trip",
+            "trip_detail",
             "customer_name",
             "customer_email",
             "customer_phone",
             "weight_kg",
             "description",
+            "delivery_type",
+            "delivery_address",
             "status",
             "created_at",
         ]
-        read_only_fields = ["id", "status", "created_at"]
+        read_only_fields = ["id", "status", "created_at", "customer_name", "customer_email", "trip_detail"]
+
+    def get_trip_detail(self, obj):
+        t = obj.trip
+        return {
+            "id": t.id,
+            "origin_city": t.origin_city,
+            "origin_country": t.origin_country,
+            "dest_city": t.dest_city,
+            "dest_country": t.dest_country,
+            "departure_at": t.departure_at,
+            "arrival_eta": t.arrival_eta,
+            "price_per_kg": t.price_per_kg,
+            "agency_name": t.agency.legal_name if t.agency else "",
+        }
 
 
 # ✅ Agence: Trips avec capacité

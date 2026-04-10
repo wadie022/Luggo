@@ -167,6 +167,46 @@ def send_shipment_rejected(customer_email: str, customer_name: str, trip_route: 
     _send([customer_email], "Demande de colis refusée ❌", _base("Demande refusée", body))
 
 
+def send_shipment_deposited(customer_email: str, customer_name: str, trip_route: str):
+    body = f"""
+    <p style="color:#475569;margin:0 0 16px">Bonjour <strong>{customer_name}</strong>,</p>
+    <p style="color:#475569;margin:0 0 16px">Ton colis sur le trajet <strong>{trip_route}</strong> a bien été <strong>déposé au bureau de départ</strong>.</p>
+    <p style="color:#475569;margin:0 0 24px">Il sera pris en charge par l'agence sous peu.</p>
+    <a href="{SITE_URL}/mes-colis" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:600;display:inline-block">Suivre mon colis →</a>"""
+    _send([customer_email], "Colis déposé au bureau 📦", _base("Colis déposé !", body))
+
+
+def send_shipment_in_transit(customer_email: str, customer_name: str, trip_route: str):
+    body = f"""
+    <p style="color:#475569;margin:0 0 16px">Bonjour <strong>{customer_name}</strong>,</p>
+    <p style="color:#475569;margin:0 0 16px">Ton colis est maintenant <strong style="color:#2563eb">en transit</strong> sur le trajet <strong>{trip_route}</strong>.</p>
+    <p style="color:#475569;margin:0 0 24px">Il est en route vers le bureau de destination.</p>
+    <a href="{SITE_URL}/mes-colis" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:600;display:inline-block">Suivre mon colis →</a>"""
+    _send([customer_email], "Ton colis est en route 🚚", _base("Colis en transit !", body))
+
+
+def send_shipment_arrived(customer_email: str, customer_name: str, trip_route: str, delivery_type: str):
+    if delivery_type == "HOME_DELIVERY":
+        next_step = "Il sera livré à ton domicile très prochainement."
+    else:
+        next_step = "Tu peux désormais le récupérer au bureau de destination."
+    body = f"""
+    <p style="color:#475569;margin:0 0 16px">Bonjour <strong>{customer_name}</strong>,</p>
+    <p style="color:#475569;margin:0 0 16px">Ton colis est <strong style="color:#16a34a">arrivé au bureau de destination</strong> ({trip_route}).</p>
+    <p style="color:#475569;margin:0 0 24px">{next_step}</p>
+    <a href="{SITE_URL}/mes-colis" style="background:#16a34a;color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:600;display:inline-block">Voir mes colis →</a>"""
+    _send([customer_email], "Colis arrivé à destination 🎉", _base("Colis arrivé !", body))
+
+
+def send_shipment_delivered(customer_email: str, customer_name: str, trip_route: str):
+    body = f"""
+    <p style="color:#475569;margin:0 0 16px">Bonjour <strong>{customer_name}</strong>,</p>
+    <p style="color:#475569;margin:0 0 16px">Ton colis sur le trajet <strong>{trip_route}</strong> a été <strong style="color:#16a34a">livré avec succès</strong> !</p>
+    <p style="color:#475569;margin:0 0 24px">Merci d'avoir utilisé Luggo.</p>
+    <a href="{SITE_URL}/trips" style="background:#16a34a;color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:600;display:inline-block">Envoyer un autre colis →</a>"""
+    _send([customer_email], "Colis livré ✅", _base("Livraison confirmée !", body))
+
+
 def send_trip_published(agency_email: str, agency_name: str, route: str):
     body = f"""
     <p style="color:#475569;margin:0 0 16px">Bonjour <strong>{agency_name}</strong>,</p>

@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { API_BASE, getAccessToken, getRole, logout, fetchMe } from "@/lib/api";
-import { ArrowLeft, Package, MapPin, Calendar, ArrowRight } from "lucide-react";
+import { API_BASE, authHeader, getAccessToken, getRole, logout, fetchMe } from "@/lib/api";
+import { ArrowLeft, Package, MapPin, Calendar, ArrowRight, Home, Building2 } from "lucide-react";
 
 type Trip = {
   id: number;
@@ -25,6 +25,8 @@ type ShipmentResponse = {
   customer_phone: string;
   weight_kg: number;
   description: string;
+  delivery_type: string;
+  delivery_address: string;
   status: string;
   created_at: string;
 };
@@ -39,15 +41,17 @@ export default function BookShipmentPage() {
   const [tripError, setTripError] = useState<string | null>(null);
 
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [email, setEmail]       = useState("");
+  const [phone, setPhone]       = useState("");
   const [weightKg, setWeightKg] = useState(1);
-  const [description, setDescription] = useState("");
+  const [description, setDescription]   = useState("");
+  const [deliveryType, setDeliveryType] = useState<"PICKUP" | "HOME_DELIVERY">("PICKUP");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
 
-  const [submitting, setSubmitting] = useState(false);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [apiErrors, setApiErrors] = useState<any>(null);
+  const [submitting, setSubmitting]         = useState(false);
+  const [successMsg, setSuccessMsg]         = useState<string | null>(null);
+  const [errorMsg, setErrorMsg]             = useState<string | null>(null);
+  const [apiErrors, setApiErrors]           = useState<any>(null);
   const [createdShipment, setCreatedShipment] = useState<ShipmentResponse | null>(null);
 
   const estimatedPrice =
@@ -60,24 +64,19 @@ export default function BookShipmentPage() {
     router.replace("/login");
   }
 
-  // Guard: must be logged in, AGENCY users are redirected to their dashboard
   useEffect(() => {
     async function guard() {
       const token = getAccessToken();
-      if (!token) {
-        router.replace("/login");
-        return;
-      }
+      if (!token) { router.replace("/login"); return; }
       try {
         const me = await fetchMe();
-        if (me.role === "AGENCY") {
-          router.replace("/dashboard/agency");
-          return;
-        }
+        if (me.role === "AGENCY") { router.replace("/dashboard/agency"); return; }
         if (me.role === "CLIENT" && me.kyc_status !== "VERIFIED") {
-          router.replace("/profile/kyc");
-          return;
+          router.replace("/profile/kyc"); return;
         }
+        // Pre-fill from profile
+        setFullName(me.username ?? "");
+        setEmail(me.email ?? "");
       } catch {
         router.replace("/login");
       }
@@ -85,10 +84,8 @@ export default function BookShipmentPage() {
     guard();
   }, [router]);
 
-  // Fetch trip details
   useEffect(() => {
     if (!tripId || Number.isNaN(tripId)) return;
-
     async function loadTrip() {
       try {
         setLoadingTrip(true);
@@ -114,20 +111,16 @@ export default function BookShipmentPage() {
     setCreatedShipment(null);
 
     try {
-      const token = getAccessToken();
       const res = await fetch(`${API_BASE}/shipments/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { "Content-Type": "application/json", ...authHeader() },
         body: JSON.stringify({
           trip: tripId,
-          customer_name: fullName,
-          customer_email: email,
           customer_phone: phone,
           weight_kg: weightKg,
           description,
+          delivery_type: deliveryType,
+          delivery_address: deliveryType === "HOME_DELIVERY" ? deliveryAddress : "",
         }),
       });
 
@@ -135,9 +128,7 @@ export default function BookShipmentPage() {
 
       if (!res.ok) {
         setApiErrors(data);
-        throw new Error(
-          (data as any).detail || "Impossible de créer le colis. Vérifie les informations."
-        );
+        throw new Error((data as any).detail || "Impossible de créer le colis. Vérifie les informations.");
       }
 
       setCreatedShipment(data);
@@ -166,17 +157,11 @@ export default function BookShipmentPage() {
 
           <div className="flex items-center gap-2">
             {role === "AGENCY" && (
-              <Link
-                href="/dashboard/agency"
-                className="px-3 py-2 rounded-xl text-sm font-semibold text-emerald-300 hover:bg-slate-800"
-              >
+              <Link href="/dashboard/agency" className="px-3 py-2 rounded-xl text-sm font-semibold text-emerald-300 hover:bg-slate-800">
                 Dashboard agence
               </Link>
             )}
-            <button
-              onClick={handleLogout}
-              className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800"
-            >
+            <button onClick={handleLogout} className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
               Déconnexion
             </button>
           </div>
@@ -184,17 +169,12 @@ export default function BookShipmentPage() {
       </header>
 
       <div className="mx-auto max-w-4xl px-4 py-10">
-        <Link
-          href="/trips"
-          className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 mb-6"
-        >
+        <Link href="/trips" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 mb-6">
           <ArrowLeft className="h-4 w-4" />
           Retour aux trajets
         </Link>
 
-        {loadingTrip && (
-          <p className="text-slate-500 text-sm">Chargement du trajet…</p>
-        )}
+        {loadingTrip && <p className="text-slate-500 text-sm">Chargement du trajet…</p>}
 
         {tripError && (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -207,7 +187,7 @@ export default function BookShipmentPage() {
             {/* FORM */}
             <div className="lg:col-span-2">
               <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                {/* Header carte trajet */}
+                {/* Header */}
                 <div className="p-6 border-b border-slate-100 bg-gradient-to-br from-blue-50/60 to-white">
                   <div className="text-xs font-semibold tracking-widest text-blue-600 uppercase mb-1">
                     Demande d'envoi
@@ -228,47 +208,37 @@ export default function BookShipmentPage() {
                         day: "numeric", month: "long", year: "numeric",
                       })}
                     </span>
-                    <span className="font-semibold text-blue-700">
-                      {trip.price_per_kg} €/kg
-                    </span>
+                    <span className="font-semibold text-blue-700">{trip.price_per_kg} €/kg</span>
                   </div>
                 </div>
 
                 {/* Formulaire */}
                 <form onSubmit={handleSubmit} className="p-6 grid gap-4 md:grid-cols-2">
+                  {/* Nom — pre-filled, read-only */}
                   <div className="md:col-span-2">
                     <Field label="Nom complet">
                       <input
                         value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        placeholder="Prénom Nom"
+                        readOnly
+                        className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-100 text-sm text-slate-500 cursor-not-allowed"
+                      />
+                    </Field>
+                  </div>
+
+                  {/* Téléphone */}
+                  <div className="md:col-span-2">
+                    <Field label="Téléphone">
+                      <input
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="+33 6 00 00 00 00"
                         required
                         className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </Field>
                   </div>
 
-                  <Field label="Email">
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="ton@email.com"
-                      required
-                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </Field>
-
-                  <Field label="Téléphone">
-                    <input
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+33 6 00 00 00 00"
-                      required
-                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </Field>
-
+                  {/* Poids */}
                   <div className="md:col-span-2">
                     <Field label="Poids du colis (kg)">
                       <input
@@ -283,6 +253,7 @@ export default function BookShipmentPage() {
                     </Field>
                   </div>
 
+                  {/* Description */}
                   <div className="md:col-span-2">
                     <Field label="Description du contenu">
                       <textarea
@@ -294,6 +265,54 @@ export default function BookShipmentPage() {
                       />
                     </Field>
                   </div>
+
+                  {/* Mode de livraison */}
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold uppercase text-slate-500 mb-2">
+                      Mode de réception à destination
+                    </label>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setDeliveryType("PICKUP")}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl border-2 text-sm font-semibold transition ${
+                          deliveryType === "PICKUP"
+                            ? "border-blue-600 bg-blue-50 text-blue-700"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                        }`}
+                      >
+                        <Building2 className="h-5 w-5 shrink-0" />
+                        Retrait au bureau
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeliveryType("HOME_DELIVERY")}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl border-2 text-sm font-semibold transition ${
+                          deliveryType === "HOME_DELIVERY"
+                            ? "border-blue-600 bg-blue-50 text-blue-700"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                        }`}
+                      >
+                        <Home className="h-5 w-5 shrink-0" />
+                        Livraison à domicile
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Adresse domicile */}
+                  {deliveryType === "HOME_DELIVERY" && (
+                    <div className="md:col-span-2">
+                      <Field label="Adresse de livraison">
+                        <input
+                          value={deliveryAddress}
+                          onChange={(e) => setDeliveryAddress(e.target.value)}
+                          placeholder="12 rue des Lilas, Casablanca"
+                          required
+                          className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </Field>
+                    </div>
+                  )}
 
                   <div className="md:col-span-2">
                     {errorMsg && (
@@ -336,10 +355,15 @@ export default function BookShipmentPage() {
                     <Row label="N° colis">#{createdShipment.id}</Row>
                     <Row label="Statut">
                       <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 border border-amber-200">
-                        {createdShipment.status}
+                        En attente
                       </span>
                     </Row>
                     <Row label="Poids">{createdShipment.weight_kg} kg</Row>
+                    <Row label="Livraison">
+                      {createdShipment.delivery_type === "HOME_DELIVERY"
+                        ? `Domicile — ${createdShipment.delivery_address}`
+                        : "Retrait au bureau"}
+                    </Row>
                     {estimatedPrice !== null && (
                       <Row label="Montant estimé">
                         <span className="font-bold text-blue-700">{estimatedPrice.toFixed(2)} €</span>
@@ -348,11 +372,9 @@ export default function BookShipmentPage() {
                   </div>
                   <p className="mt-4 text-xs text-slate-500">
                     L'agence examinera ta demande et te contactera à l'adresse{" "}
-                    <span className="font-semibold">{createdShipment.customer_email}</span>.
+                    <span className="font-semibold">{email}</span>.
                     Tu peux suivre le statut sur{" "}
-                    <Link href="/mes-colis" className="text-blue-600 underline">
-                      Mes colis
-                    </Link>.
+                    <Link href="/mes-colis" className="text-blue-600 underline">Mes colis</Link>.
                   </p>
                 </div>
               )}
@@ -406,9 +428,7 @@ export default function BookShipmentPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
-        {label}
-      </label>
+      <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">{label}</label>
       {children}
     </div>
   );
