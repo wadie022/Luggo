@@ -547,6 +547,41 @@ class AgencyListView(generics.ListAPIView):
         return Response(list(agencies))
 
 
+class AgencyProfileView(APIView):
+    """GET/PATCH /api/agency/profile/ — profil de l'agence connectée."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        agency = getattr(request.user, "agency", None)
+        if not agency:
+            return Response({"detail": "Aucune agence."}, status=404)
+        return Response({
+            "legal_name": agency.legal_name,
+            "city": agency.city,
+            "country": agency.country,
+            "address": agency.address or "",
+            "latitude": agency.latitude,
+            "longitude": agency.longitude,
+        })
+
+    def patch(self, request):
+        agency = getattr(request.user, "agency", None)
+        if not agency:
+            return Response({"detail": "Aucune agence."}, status=404)
+        for field in ["legal_name", "city", "country", "address", "latitude", "longitude"]:
+            if field in request.data:
+                setattr(agency, field, request.data[field])
+        agency.save()
+        return Response({
+            "legal_name": agency.legal_name,
+            "city": agency.city,
+            "country": agency.country,
+            "address": agency.address or "",
+            "latitude": agency.latitude,
+            "longitude": agency.longitude,
+        })
+
+
 class AgencyTripsView(generics.ListAPIView):
     """
     GET /api/agency/trips/
