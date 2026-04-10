@@ -3,7 +3,7 @@ import os
 import resend
 
 ADMIN_EMAIL = "cr55108@gmail.com"
-FROM_EMAIL  = "Luggo <noreply@luggo.ma>"   # remplace par ton domaine vérifié sur Resend
+FROM_EMAIL  = "Luggo <onboarding@resend.dev>"
 SITE_URL    = os.getenv("SITE_URL", "https://luggo.vercel.app")
 
 
