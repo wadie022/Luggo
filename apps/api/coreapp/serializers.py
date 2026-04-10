@@ -42,20 +42,16 @@ class KYCDocumentSerializer(serializers.ModelSerializer):
         return {"username": obj.user.username, "email": obj.user.email}
 
     def get_id_front_url(self, obj):
-        if obj.id_front:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.id_front.url)
-            return obj.id_front.url
-        return None
+        try:
+            return obj.id_front.url if obj.id_front else None
+        except Exception:
+            return None
 
     def get_id_back_url(self, obj):
-        if obj.id_back:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.id_back.url)
-            return obj.id_back.url
-        return None
+        try:
+            return obj.id_back.url if obj.id_back else None
+        except Exception:
+            return None
 
 
 class AgencyDocumentSerializer(serializers.ModelSerializer):
@@ -71,12 +67,10 @@ class AgencyDocumentSerializer(serializers.ModelSerializer):
         return obj.agency.legal_name
 
     def get_document_url(self, obj):
-        if obj.document:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.document.url)
-            return obj.document.url
-        return None
+        try:
+            return obj.document.url if obj.document else None
+        except Exception:
+            return None
 
 
 class RegisterSerializer(serializers.ModelSerializer):
