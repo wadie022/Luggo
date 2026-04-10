@@ -157,11 +157,11 @@ if _R2_BUCKET:
     AWS_STORAGE_BUCKET_NAME = _R2_BUCKET
     AWS_S3_ENDPOINT_URL     = f"https://{os.getenv('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com"
     AWS_S3_REGION_NAME      = 'auto'
-    AWS_DEFAULT_ACL         = None   # R2 ne supporte pas les ACLs
+    AWS_DEFAULT_ACL         = None
     AWS_S3_FILE_OVERWRITE   = False
-    AWS_QUERYSTRING_AUTH    = True   # URLs signées (pas besoin de bucket public)
-    AWS_S3_SIGNATURE_VERSION = 's3v4'
-    AWS_S3_ADDRESSING_STYLE = 'path'
+    AWS_QUERYSTRING_AUTH    = False
+    AWS_S3_CUSTOM_DOMAIN    = os.getenv('R2_CUSTOM_DOMAIN')
+    MEDIA_URL               = f"https://{os.getenv('R2_CUSTOM_DOMAIN')}/"
 else:
     # Stockage local (dev)
     MEDIA_URL  = '/media/'
