@@ -13,6 +13,8 @@ const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
 type Trip = {
   id: number;
+  agency: number;
+  agency_name: string;
   origin_country: string;
   origin_city: string;
   dest_country: string;
@@ -106,6 +108,7 @@ export default function TripsPage() {
           <nav className="hidden md:flex items-center gap-6 text-sm text-slate-200">
             <Link href="/trips" className="text-white font-semibold">Trajets</Link>
             <Link href="/mes-colis" className="hover:text-white">Mes colis</Link>
+            <Link href="/messages" className="hover:text-white">Messages</Link>
             <Link href="/map" className="hover:text-white">Carte</Link>
             <Link href="/reclamations" className="hover:text-white">Réclamations</Link>
           </nav>
@@ -256,6 +259,7 @@ export default function TripsPage() {
               key={trip.id}
               trip={trip}
               onBook={() => router.push(`/trips/${trip.id}/book`)}
+              onContact={() => router.push(`/messages?agency=${trip.agency}&name=${encodeURIComponent(trip.agency_name || "")}`)}
             />
           ))}
         </div>
@@ -279,7 +283,7 @@ export default function TripsPage() {
 
 /* ---------- TripCard ---------- */
 
-function TripCard({ trip, onBook }: { trip: Trip; onBook: () => void }) {
+function TripCard({ trip, onBook, onContact }: { trip: Trip; onBook: () => void; onContact: () => void }) {
   const departure = new Date(trip.departure_at);
   const arrival = trip.arrival_eta ? new Date(trip.arrival_eta) : null;
 
@@ -357,12 +361,18 @@ function TripCard({ trip, onBook }: { trip: Trip; onBook: () => void }) {
       </div>
 
       {/* CTA */}
-      <div className="px-5 pb-5">
+      <div className="px-5 pb-5 flex flex-col gap-2">
         <button
           onClick={onBook}
           className="w-full px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-sm transition"
         >
           Envoyer un colis
+        </button>
+        <button
+          onClick={onContact}
+          className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-sm transition"
+        >
+          Contacter l'agence
         </button>
       </div>
     </article>

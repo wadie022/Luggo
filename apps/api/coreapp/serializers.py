@@ -1,7 +1,7 @@
 # coreapp/serializers.py
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from .models import User, Trip, Shipment, Agency, AgencyBranch, KYCDocument, AgencyDocument, Notification, Reclamation, Review
+from .models import User, Trip, Shipment, Agency, AgencyBranch, KYCDocument, AgencyDocument, Notification, Reclamation, Review, Conversation, Message
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 
@@ -109,6 +109,8 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class TripSerializer(serializers.ModelSerializer):
+    agency_name = serializers.CharField(source='agency.legal_name', read_only=True)
+
     class Meta:
         model = Trip
         fields = "__all__"
@@ -235,6 +237,42 @@ class AgencyBranchSerializer(serializers.ModelSerializer):
         model = AgencyBranch
         fields = ("id", "label", "address", "city", "country", "latitude", "longitude", "is_main")
         read_only_fields = ("id",)
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    sender_id       = serializers.IntegerField(source='sender.id', read_only=True)
+    sender_username = serializers.CharField(source='sender.username', read_only=True)
+
+    class Meta:
+        model = Message
+        fields = ('id', 'conversation', 'sender_id', 'sender_username', 'content', 'created_at', 'is_read')
+        read_only_fields = ('id', 'conversation', 'sender_id', 'sender_username', 'created_at', 'is_read')
+
+
+class ConversationListSerializer(serializers.ModelSerializer):
+    agency_id       = serializers.IntegerField(source='agency.id', read_only=True)
+    agency_name     = serializers.CharField(source='agency.legal_name', read_only=True)
+    client_id       = serializers.IntegerField(source='client.id', read_only=True)
+    client_username = serializers.CharField(source='client.username', read_only=True)
+    shipment_id     = serializers.IntegerField(source='shipment.id', read_only=True, default=None)
+    last_message    = serializers.SerializerMethodField()
+    unread_count    = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Conversation
+        fields = ('id', 'agency_id', 'agency_name', 'client_id', 'client_username',
+                  'shipment_id', 'updated_at', 'last_message', 'unread_count')
+
+    def get_last_message(self, obj):
+        msgs = list(obj.messages.all())
+        if not msgs:
+            return None
+        last = msgs[-1]
+        return {'content': last.content, 'created_at': last.created_at, 'sender_username': last.sender.username}
+
+    def get_unread_count(self, obj):
+        user = self.context['request'].user
+        return sum(1 for m in obj.messages.all() if not m.is_read and m.sender_id != user.id)
 
 
 class ReviewSerializer(serializers.ModelSerializer):

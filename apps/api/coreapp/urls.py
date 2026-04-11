@@ -13,7 +13,8 @@ from .views import (
     AgencyListView,
     AgencyTripsView, AgencyTripEditView, AgencyShipmentsView, AgencyShipmentStatusView, AgencyStatsView,
     AgencyProfileView, AgencyBranchView, AgencyBranchDetailView, ShipmentTrackingView,
-    ReviewView, PublicAgencyBranchesView
+    ReviewView, PublicAgencyBranchesView,
+    ConversationView, MessageListView, ConversationReadView
 )
 
 urlpatterns = [
@@ -73,4 +74,8 @@ urlpatterns = [
     path("agency/branches/<int:pk>/", AgencyBranchDetailView.as_view(), name="agency-branch-detail"),
 
     path("reviews/", ReviewView.as_view(), name="reviews"),
+
+    path("conversations/", ConversationView.as_view(), name="conversations"),
+    path("conversations/<int:pk>/messages/", MessageListView.as_view(), name="conversation-messages"),
+    path("conversations/<int:pk>/read/", ConversationReadView.as_view(), name="conversation-read"),
 ]

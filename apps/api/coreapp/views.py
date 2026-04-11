@@ -17,12 +17,12 @@ import mimetypes
 import re as _re
 from django.utils import timezone
 
-from .models import Trip, Shipment, KYCDocument, AgencyDocument, Notification, Reclamation, AgencyBranch, Review
+from .models import Trip, Shipment, KYCDocument, AgencyDocument, Notification, Reclamation, AgencyBranch, Review, Conversation, Message
 from .serializers import (
     RegisterSerializer, TripSerializer, ShipmentSerializer, MeSerializer,
     AgencyTripSerializer, AgencyShipmentSerializer, KYCDocumentSerializer,
     AgencyDocumentSerializer, NotificationSerializer, ReclamationSerializer, AgencyBranchSerializer,
-    ReviewSerializer
+    ReviewSerializer, MessageSerializer, ConversationListSerializer
 )
 from .permissions import IsAgency
 from .emails import (
@@ -1306,3 +1306,149 @@ class ReviewView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save(reviewer=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+# ============================
+# 💬 MESSAGERIE
+# ============================
+
+from django.db.models import Prefetch as _Prefetch
+
+def _check_conv_access(user, conv):
+    is_client = (user.id == conv.client_id)
+    is_agency = hasattr(user, 'agency') and user.agency_id == conv.agency_id
+    is_admin  = user.role == 'ADMIN'
+    if not (is_client or is_agency or is_admin):
+        from rest_framework.exceptions import PermissionDenied
+        raise PermissionDenied("Accès refusé à cette conversation.")
+
+
+class ConversationView(APIView):
+    """
+    GET  /conversations/ — liste des conversations de l'utilisateur
+    POST /conversations/ — démarrer ou reprendre une conversation (client only)
+    """
+    permission_classes = [IsAuthenticated]
+
+    def _qs(self, user):
+        msgs_prefetch = _Prefetch('messages', queryset=Message.objects.select_related('sender').order_by('created_at'))
+        if user.role == 'CLIENT':
+            qs = Conversation.objects.filter(client=user)
+        elif user.role == 'AGENCY':
+            agency = getattr(user, 'agency', None)
+            qs = Conversation.objects.filter(agency=agency) if agency else Conversation.objects.none()
+        else:
+            qs = Conversation.objects.all()
+        return qs.select_related('client', 'agency', 'shipment').prefetch_related(msgs_prefetch).order_by('-updated_at')
+
+    def get(self, request):
+        qs = self._qs(request.user)
+        return Response(ConversationListSerializer(qs, many=True, context={'request': request}).data)
+
+    def post(self, request):
+        if request.user.role != 'CLIENT':
+            return Response({"detail": "Seuls les clients peuvent initier une conversation."}, status=status.HTTP_403_FORBIDDEN)
+
+        agency_id  = request.data.get('agency_id')
+        content    = (request.data.get('content') or '').strip()
+        shipment_id = request.data.get('shipment_id')
+
+        if not agency_id:
+            return Response({"detail": "agency_id requis."}, status=status.HTTP_400_BAD_REQUEST)
+        if not content:
+            return Response({"detail": "Le message ne peut pas être vide."}, status=status.HTTP_400_BAD_REQUEST)
+
+        from .models import Agency as AgencyModel
+        try:
+            agency = AgencyModel.objects.get(pk=agency_id)
+        except AgencyModel.DoesNotExist:
+            return Response({"detail": "Agence introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        shipment = None
+        if shipment_id:
+            try:
+                shipment = Shipment.objects.get(pk=shipment_id, user=request.user)
+            except Shipment.DoesNotExist:
+                pass
+
+        conv, created = Conversation.objects.get_or_create(
+            client=request.user,
+            agency=agency,
+            defaults={'shipment': shipment},
+        )
+        Message.objects.create(conversation=conv, sender=request.user, content=content)
+        conv.save()  # bump updated_at
+
+        notify(agency.user,
+               title=f"Nouveau message de {request.user.username}",
+               message=content[:120],
+               link="/dashboard/agency/messages")
+
+        msgs_prefetch = _Prefetch('messages', queryset=Message.objects.select_related('sender').order_by('created_at'))
+        conv = Conversation.objects.select_related('client', 'agency', 'shipment').prefetch_related(msgs_prefetch).get(pk=conv.pk)
+        return Response(ConversationListSerializer(conv, context={'request': request}).data,
+                        status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+
+class MessageListView(APIView):
+    """
+    GET  /conversations/<id>/messages/ — liste des messages
+    POST /conversations/<id>/messages/ — envoyer un message
+    """
+    permission_classes = [IsAuthenticated]
+
+    def _get_conv(self, pk, user):
+        try:
+            conv = Conversation.objects.select_related('client', 'agency__user').get(pk=pk)
+        except Conversation.DoesNotExist:
+            return None
+        _check_conv_access(user, conv)
+        return conv
+
+    def get(self, request, pk):
+        conv = self._get_conv(pk, request.user)
+        if conv is None:
+            return Response({"detail": "Conversation introuvable."}, status=status.HTTP_404_NOT_FOUND)
+        msgs = conv.messages.select_related('sender').order_by('created_at')
+        return Response(MessageSerializer(msgs, many=True).data)
+
+    def post(self, request, pk):
+        conv = self._get_conv(pk, request.user)
+        if conv is None:
+            return Response({"detail": "Conversation introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        content = (request.data.get('content') or '').strip()
+        if not content:
+            return Response({"detail": "Le message ne peut pas être vide."}, status=status.HTTP_400_BAD_REQUEST)
+
+        msg = Message.objects.create(conversation=conv, sender=request.user, content=content)
+        conv.save()  # bump updated_at
+
+        # Notifier le destinataire
+        if request.user.id == conv.client_id:
+            recipient = conv.agency.user
+            link = "/dashboard/agency/messages"
+        else:
+            recipient = conv.client
+            link = "/messages"
+
+        notify(recipient,
+               title=f"Nouveau message de {request.user.username}",
+               message=content[:120],
+               link=link)
+
+        return Response(MessageSerializer(msg).data, status=status.HTTP_201_CREATED)
+
+
+class ConversationReadView(APIView):
+    """PATCH /conversations/<id>/read/ — marquer les messages reçus comme lus."""
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        try:
+            conv = Conversation.objects.get(pk=pk)
+        except Conversation.DoesNotExist:
+            return Response({"detail": "Conversation introuvable."}, status=status.HTTP_404_NOT_FOUND)
+        _check_conv_access(request.user, conv)
+        conv.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+        return Response({"ok": True})

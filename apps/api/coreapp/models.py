@@ -211,6 +211,35 @@ class Review(models.Model):
         return f"Review #{self.id} — {self.reviewer.username} ({self.rating}★)"
 
 
+class Conversation(models.Model):
+    client   = models.ForeignKey(User, on_delete=models.CASCADE, related_name='client_conversations')
+    agency   = models.ForeignKey(Agency, on_delete=models.CASCADE, related_name='agency_conversations')
+    shipment = models.ForeignKey('Shipment', null=True, blank=True, on_delete=models.SET_NULL, related_name='conversations')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('client', 'agency')
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"Conv {self.client.username} ↔ {self.agency.legal_name}"
+
+
+class Message(models.Model):
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
+    sender       = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    content      = models.TextField()
+    created_at   = models.DateTimeField(auto_now_add=True)
+    is_read      = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Msg #{self.id} de {self.sender.username}"
+
+
 class Payment(models.Model):
     shipment = models.OneToOneField(Shipment, on_delete=models.CASCADE)  # 1 paiement ↔ 1 envoi
     amount_total_cents = models.IntegerField()       # montant total en centimes
