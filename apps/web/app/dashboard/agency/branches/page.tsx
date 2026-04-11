@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, authHeader, fetchMe, logout } from "@/lib/api";
 import { MapPin, Plus, Trash2, ArrowLeft, CheckCircle2, XCircle, Search, Star } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const BranchMap = dynamic(() => import("@/components/BranchMap"), { ssr: false });
 
 type Branch = {
   id: number;
@@ -73,9 +76,13 @@ export default function AgencyBranchesPage() {
       const res = await fetch(`${API_BASE}/agency/branches/`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeader() },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, country: form.country.trim().toUpperCase().slice(0, 2) }),
       });
-      if (!res.ok) throw new Error("Erreur lors de l'ajout.");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = typeof data === "object" ? Object.values(data).flat().join(" ") : "Erreur lors de l'ajout.";
+        throw new Error(msg);
+      }
       await reload();
       setForm({ ...EMPTY });
       setShowForm(false);
@@ -209,6 +216,13 @@ export default function AgencyBranchesPage() {
               </button>
             </div>
           </form>
+        )}
+
+        {/* Map */}
+        {branches.filter(b => b.latitude && b.longitude).length > 0 && (
+          <div className="rounded-3xl overflow-hidden border border-slate-200 mb-6" style={{ height: 320 }}>
+            <BranchMap branches={branches} />
+          </div>
         )}
 
         {/* Liste */}
