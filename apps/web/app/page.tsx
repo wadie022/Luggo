@@ -2,25 +2,32 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Package, Truck, MapPin, ShieldCheck, ArrowRight, Building2, CheckCircle2 } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
-import { fetchMe } from "@/lib/api";
+import { getAccessToken, getRole } from "@/lib/api";
 import "swiper/css";
 import "swiper/css/pagination";
 
 export default function HomePage() {
   const router = useRouter();
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    fetchMe().then((me) => {
-      if (me.role === "AGENCY") router.replace("/dashboard/agency");
-      else if (me.role === "ADMIN") router.replace("/dashboard/admin");
+    const token = getAccessToken();
+    const role  = getRole();
+    if (token && role) {
+      if (role === "AGENCY") router.replace("/dashboard/agency");
+      else if (role === "ADMIN") router.replace("/dashboard/admin");
       else router.replace("/trips");
-    }).catch(() => {/* not logged in, stay on landing */});
+    } else {
+      setReady(true);
+    }
   }, [router]);
+
+  if (!ready) return null;
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
