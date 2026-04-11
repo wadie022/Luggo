@@ -139,7 +139,6 @@ function TopBar() {
   const navLinks = [
     { href: "/dashboard/agency/shipments", label: "Demandes" },
     { href: "/dashboard/agency/branches", label: "Adresses" },
-    { href: "/map", label: "Carte" },
     { href: "/reclamations", label: "Réclamations" },
     { href: "/dashboard/agency/profile", label: "Profil" },
   ];
