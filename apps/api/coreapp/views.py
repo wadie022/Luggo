@@ -436,12 +436,15 @@ class AdminKYCReviewView(APIView):
         update_fields = ["kyc_status"]
         kyc.user.kyc_status = new_status
         if new_status == "VERIFIED":
+            # Admin peut fournir first_name/last_name manuellement, sinon on prend extracted_data
             data = kyc.extracted_data or {}
-            if data.get("first_name") and not kyc.user.first_name:
-                kyc.user.first_name = data["first_name"]
+            first_name = request.data.get("first_name") or data.get("first_name", "")
+            last_name  = request.data.get("last_name")  or data.get("last_name", "")
+            if first_name:
+                kyc.user.first_name = first_name
                 update_fields.append("first_name")
-            if data.get("last_name") and not kyc.user.last_name:
-                kyc.user.last_name = data["last_name"]
+            if last_name:
+                kyc.user.last_name = last_name
                 update_fields.append("last_name")
         kyc.user.save(update_fields=update_fields)
         if new_status == "VERIFIED":
