@@ -723,8 +723,17 @@ class AdminUserActionView(APIView):
         elif action == "unban":
             user.is_active = True
             user.save(update_fields=["is_active"])
+        elif action == "set_reg_number":
+            agency = getattr(user, "agency", None)
+            if not agency:
+                return Response({"detail": "Aucune agence liée."}, status=400)
+            reg = request.data.get("registration_number", "").strip()
+            if not reg:
+                return Response({"detail": "registration_number requis."}, status=400)
+            agency.registration_number = reg
+            agency.save(update_fields=["registration_number"])
         else:
-            return Response({"detail": "Action invalide. Utilise 'ban' ou 'unban'."}, status=400)
+            return Response({"detail": "Action invalide."}, status=400)
 
         return Response({
             "id": user.id,

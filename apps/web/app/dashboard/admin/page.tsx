@@ -183,6 +183,17 @@ export default function AdminDashboard() {
     }
   }
 
+  async function setRegNumber(id: number) {
+    const reg = prompt("Numéro d'enregistrement (SIRET / RC) :");
+    if (!reg) return;
+    await fetch(`${API_BASE}/admin/users/${id}/`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...authHeader() },
+      body: JSON.stringify({ action: "set_reg_number", registration_number: reg }),
+    });
+    alert("Numéro enregistré !");
+  }
+
   async function reviewKYC(id: number, newStatus: "VERIFIED" | "REJECTED", reason = "", firstName = "", lastName = "") {
     await fetch(`${API_BASE}/admin/kyc/${id}/review/`, {
       method: "PATCH",
@@ -399,6 +410,15 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <div className="shrink-0">
+                    {u.role === "AGENCY" && (
+                      <button
+                        onClick={() => setRegNumber(u.id)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 text-sm font-semibold transition"
+                        title="Saisir le numéro d'enregistrement"
+                      >
+                        N° entreprise
+                      </button>
+                    )}
                     {u.is_active ? (
                       <button
                         onClick={() => {
