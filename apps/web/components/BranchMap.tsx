@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 
@@ -17,6 +17,36 @@ const myLocationIcon = L.divIcon({
   className: "",
   html: `<div style="width:18px;height:18px;background:#2563eb;border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(37,99,235,0.3)"></div>`,
   iconAnchor: [9, 9],
+});
+
+// Icône principale (or/étoile)
+const mainBranchIcon = L.divIcon({
+  className: "",
+  html: `
+    <div style="position:relative;width:34px;height:40px">
+      <svg viewBox="0 0 34 40" width="34" height="40" xmlns="http://www.w3.org/2000/svg">
+        <path d="M17 0C8.163 0 1 7.163 1 16c0 10.5 16 24 16 24S33 26.5 33 16C33 7.163 25.837 0 17 0z"
+          fill="#d97706" stroke="white" stroke-width="2"/>
+        <text x="17" y="21" text-anchor="middle" font-size="14" fill="white">★</text>
+      </svg>
+    </div>`,
+  iconAnchor: [17, 40],
+  iconSize: [34, 40],
+});
+
+// Icône succursale (bleu)
+const branchIcon = L.divIcon({
+  className: "",
+  html: `
+    <div style="position:relative;width:28px;height:34px">
+      <svg viewBox="0 0 28 34" width="28" height="34" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 0C6.268 0 0 6.268 0 14c0 9 14 20 14 20S28 23 28 14C28 6.268 21.732 0 14 0z"
+          fill="#2563eb" stroke="white" stroke-width="2"/>
+        <circle cx="14" cy="14" r="5" fill="white"/>
+      </svg>
+    </div>`,
+  iconAnchor: [14, 34],
+  iconSize: [28, 34],
 });
 
 type Branch = {
@@ -92,7 +122,7 @@ export default function BranchMap({ branches }: { branches: Branch[] }) {
       ]
     : [38, 5];
 
-  const zoom = withCoords.length ? 5 : 4;
+  const zoom = withCoords.length === 1 ? 10 : withCoords.length > 1 ? 5 : 4;
 
   return (
     <MapContainer center={center} zoom={zoom} style={{ height: "100%", width: "100%" }}>
@@ -102,11 +132,24 @@ export default function BranchMap({ branches }: { branches: Branch[] }) {
       />
       <LocateControl />
       {withCoords.map(b => (
-        <Marker key={b.id} position={[b.latitude!, b.longitude!]}>
+        <Marker
+          key={b.id}
+          position={[b.latitude!, b.longitude!]}
+          icon={b.is_main ? mainBranchIcon : branchIcon}
+        >
           <Popup>
-            <div style={{ fontWeight: 600 }}>{b.label}</div>
-            <div style={{ fontSize: 13, color: "#64748b" }}>{[b.address, b.city, b.country].filter(Boolean).join(", ")}</div>
-            {b.is_main && <div style={{ fontSize: 12, color: "#d97706", fontWeight: 600, marginTop: 4 }}>⭐ Principale</div>}
+            <div style={{ fontWeight: 700, fontSize: 14 }}>
+              {b.is_main && <span style={{ color: "#d97706" }}>★ </span>}
+              {b.label}
+            </div>
+            <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+              {[b.address, b.city, b.country].filter(Boolean).join(", ")}
+            </div>
+            {b.is_main && (
+              <div style={{ fontSize: 11, color: "#d97706", fontWeight: 700, marginTop: 4 }}>
+                Adresse principale
+              </div>
+            )}
           </Popup>
         </Marker>
       ))}
