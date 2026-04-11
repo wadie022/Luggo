@@ -574,6 +574,89 @@ class AgencyListView(generics.ListAPIView):
         return Response(list(agencies))
 
 
+class AdminUsersView(APIView):
+    """GET /api/admin/users/?role=CLIENT|AGENCY&search=&active= — liste des utilisateurs."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != "ADMIN":
+            return Response({"detail": "Interdit."}, status=status.HTTP_403_FORBIDDEN)
+
+        from django.contrib.auth import get_user_model
+        U = get_user_model()
+
+        qs = U.objects.exclude(role="ADMIN").order_by("-date_joined")
+
+        role = request.query_params.get("role")
+        if role:
+            qs = qs.filter(role=role.upper())
+
+        search = request.query_params.get("search", "").strip()
+        if search:
+            from django.db.models import Q as DQ
+            qs = qs.filter(DQ(username__icontains=search) | DQ(email__icontains=search))
+
+        active = request.query_params.get("active")
+        if active == "false":
+            qs = qs.filter(is_active=False)
+        elif active == "true":
+            qs = qs.filter(is_active=True)
+
+        data = [
+            {
+                "id": u.id,
+                "username": u.username,
+                "email": u.email,
+                "role": u.role,
+                "kyc_status": u.kyc_status,
+                "is_active": u.is_active,
+                "date_joined": u.date_joined.strftime("%d/%m/%Y"),
+            }
+            for u in qs
+        ]
+        return Response(data)
+
+
+class AdminUserActionView(APIView):
+    """PATCH /api/admin/users/<id>/ — ban ou unban un utilisateur."""
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        if request.user.role != "ADMIN":
+            return Response({"detail": "Interdit."}, status=status.HTTP_403_FORBIDDEN)
+
+        from django.contrib.auth import get_user_model
+        U = get_user_model()
+
+        try:
+            user = U.objects.get(pk=pk)
+        except U.DoesNotExist:
+            return Response({"detail": "Utilisateur introuvable."}, status=404)
+
+        if user.role == "ADMIN":
+            return Response({"detail": "Impossible de modifier un admin."}, status=400)
+
+        action = request.data.get("action")
+        if action == "ban":
+            user.is_active = False
+            user.save(update_fields=["is_active"])
+        elif action == "unban":
+            user.is_active = True
+            user.save(update_fields=["is_active"])
+        else:
+            return Response({"detail": "Action invalide. Utilise 'ban' ou 'unban'."}, status=400)
+
+        return Response({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role,
+            "kyc_status": user.kyc_status,
+            "is_active": user.is_active,
+            "date_joined": user.date_joined.strftime("%d/%m/%Y"),
+        })
+
+
 class AdminStatsView(APIView):
     """GET /api/admin/stats/ — statistiques globales pour l'admin."""
     permission_classes = [IsAuthenticated]

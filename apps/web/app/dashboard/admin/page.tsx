@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { API_BASE, authHeader, fetchMe, logout } from "@/lib/api";
 import {
   ShieldCheck, ShieldX, Clock, Eye, CheckCircle2, XCircle,
-  Building2, User, Package, TrendingUp, Users, Truck, BarChart3
+  Building2, User, Package, TrendingUp, Users, Truck, BarChart3,
+  Ban, UserCheck, Search
 } from "lucide-react";
 
 type KYCItem = {
@@ -55,14 +56,28 @@ const STATUS_LABELS: Record<string, string> = {
   DELIVERED:  "Livrés",
 };
 
-type Tab = "stats" | "kyc";
+type AdminUser = {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  kyc_status: string;
+  is_active: boolean;
+  date_joined: string;
+};
+
+type Tab = "stats" | "kyc" | "users";
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [tab, setTab]       = useState<Tab>("stats");
-  const [kyc, setKyc]       = useState<KYCItem[]>([]);
-  const [kyb, setKyb]       = useState<KYBItem[]>([]);
-  const [stats, setStats]   = useState<Stats | null>(null);
+  const [tab, setTab]         = useState<Tab>("stats");
+  const [kyc, setKyc]         = useState<KYCItem[]>([]);
+  const [kyb, setKyb]         = useState<KYBItem[]>([]);
+  const [stats, setStats]     = useState<Stats | null>(null);
+  const [users, setUsers]     = useState<AdminUser[]>([]);
+  const [userRole, setUserRole]     = useState("ALL");
+  const [userSearch, setUserSearch] = useState("");
+  const [userActionId, setUserActionId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter]   = useState("PENDING");
 
@@ -75,10 +90,12 @@ export default function AdminDashboard() {
         if (me.role !== "ADMIN") { router.replace("/trips"); return; }
       } catch { router.replace("/login"); return; }
 
-      const [statsRes] = await Promise.all([
+      const [statsRes, usersRes] = await Promise.all([
         fetch(`${API_BASE}/admin/stats/`, { headers: authHeader() }),
+        fetch(`${API_BASE}/admin/users/`, { headers: authHeader() }),
       ]);
       if (statsRes.ok) setStats(await statsRes.json());
+      if (usersRes.ok) setUsers(await usersRes.json());
 
       await reload();
       setLoading(false);
@@ -94,6 +111,31 @@ export default function AdminDashboard() {
     ]);
     setKyc(await kycRes.json().catch(() => []));
     setKyb(await kybRes.json().catch(() => []));
+  }
+
+  async function loadUsers(role = userRole, search = userSearch) {
+    const params = new URLSearchParams();
+    if (role !== "ALL") params.set("role", role);
+    if (search.trim()) params.set("search", search.trim());
+    const res = await fetch(`${API_BASE}/admin/users/?${params}`, { headers: authHeader() });
+    if (res.ok) setUsers(await res.json());
+  }
+
+  async function doUserAction(id: number, action: "ban" | "unban") {
+    setUserActionId(id);
+    try {
+      const res = await fetch(`${API_BASE}/admin/users/${id}/`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeader() },
+        body: JSON.stringify({ action }),
+      });
+      if (res.ok) {
+        const updated: AdminUser = await res.json();
+        setUsers((prev) => prev.map((u) => u.id === id ? updated : u));
+      }
+    } finally {
+      setUserActionId(null);
+    }
   }
 
   async function reviewKYC(id: number, newStatus: "VERIFIED" | "REJECTED", reason = "") {
@@ -163,6 +205,14 @@ export default function AdminDashboard() {
               </span>
             )}
           </button>
+          <button
+            onClick={() => { setTab("users"); loadUsers(); }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition ${
+              tab === "users" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+            }`}
+          >
+            <Users className="h-4 w-4" /> Utilisateurs
+          </button>
         </div>
 
         {/* ── STATS TAB ── */}
@@ -216,6 +266,106 @@ export default function AdminDashboard() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── USERS TAB ── */}
+        {tab === "users" && (
+          <div>
+            <h1 className="text-2xl font-extrabold mb-2">Gestion des utilisateurs</h1>
+            <p className="text-slate-500 mb-6 text-sm">Consulte et bannit / réactive les clients et agences.</p>
+
+            {/* Filtres */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  value={userSearch}
+                  onChange={(e) => { setUserSearch(e.target.value); loadUsers(userRole, e.target.value); }}
+                  placeholder="Rechercher par nom ou email…"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex gap-2">
+                {["ALL", "CLIENT", "AGENCY"].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => { setUserRole(r); loadUsers(r, userSearch); }}
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${
+                      userRole === r ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    {r === "ALL" ? "Tous" : r === "CLIENT" ? "Clients" : "Agences"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Badges résumé */}
+            <div className="flex gap-4 mb-5 text-sm text-slate-500">
+              <span><span className="font-bold text-slate-800">{users.filter(u => u.is_active).length}</span> actifs</span>
+              <span><span className="font-bold text-red-600">{users.filter(u => !u.is_active).length}</span> bannis</span>
+            </div>
+
+            <div className="grid gap-3">
+              {users.length === 0 ? (
+                <p className="text-slate-400 py-8 text-center">Aucun utilisateur trouvé.</p>
+              ) : users.map((u) => (
+                <div
+                  key={u.id}
+                  className={`rounded-3xl border bg-white p-5 flex flex-col sm:flex-row sm:items-center gap-4 ${
+                    !u.is_active ? "border-red-200 bg-red-50/30" : "border-slate-200"
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-slate-900">{u.username}</span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${
+                        u.role === "AGENCY"
+                          ? "bg-purple-50 text-purple-700 border-purple-200"
+                          : "bg-blue-50 text-blue-700 border-blue-200"
+                      }`}>{u.role}</span>
+                      {!u.is_active && (
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 flex items-center gap-1">
+                          <Ban className="h-3 w-3" /> Banni
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm text-slate-500 mt-0.5">{u.email}</div>
+                    <div className="text-xs text-slate-400 mt-1">
+                      Inscrit le {u.date_joined} · KYC : <span className={
+                        u.kyc_status === "VERIFIED" ? "text-emerald-600 font-semibold" :
+                        u.kyc_status === "REJECTED" ? "text-red-600 font-semibold" : "text-amber-600 font-semibold"
+                      }>{u.kyc_status}</span>
+                    </div>
+                  </div>
+                  <div className="shrink-0">
+                    {u.is_active ? (
+                      <button
+                        onClick={() => {
+                          if (confirm(`Bannir ${u.username} ? Il ne pourra plus se connecter.`))
+                            doUserAction(u.id, "ban");
+                        }}
+                        disabled={userActionId === u.id}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-sm font-semibold disabled:opacity-60 transition"
+                      >
+                        <Ban className="h-4 w-4" />
+                        {userActionId === u.id ? "…" : "Bannir"}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => doUserAction(u.id, "unban")}
+                        disabled={userActionId === u.id}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 text-sm font-semibold disabled:opacity-60 transition"
+                      >
+                        <UserCheck className="h-4 w-4" />
+                        {userActionId === u.id ? "…" : "Réactiver"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
