@@ -143,23 +143,37 @@ export default function AgencyShipmentsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <TopBar />
+    <main className="min-h-screen bg-slate-50 text-slate-900 print:bg-white">
+      <div className="print:hidden"><TopBar /></div>
 
       <div className="mx-auto max-w-6xl px-4 py-10">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6 print:hidden">
           <div>
             <div className="text-xs font-semibold tracking-widest text-blue-600 uppercase mb-1">Mon agence</div>
             <h1 className="text-2xl md:text-3xl font-extrabold">Demandes de colis</h1>
             <p className="mt-1 text-slate-500 text-sm">Gère les envois et mets à jour le suivi à chaque étape.</p>
           </div>
-          <Link className="text-sm font-semibold text-blue-600 hover:underline" href="/dashboard/agency">
-            ← Dashboard
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-sm font-semibold text-slate-700"
+            >
+              Exporter PDF
+            </button>
+            <Link className="text-sm font-semibold text-blue-600 hover:underline" href="/dashboard/agency">
+              ← Dashboard
+            </Link>
+          </div>
+        </div>
+
+        {/* Print header (visible only in print) */}
+        <div className="hidden print:block mb-6">
+          <h1 className="text-2xl font-extrabold">Luggo — Demandes de colis</h1>
+          <p className="text-sm text-slate-500">Exporté le {new Date().toLocaleDateString("fr-FR")} · Statut : {statusFilter}</p>
         </div>
 
         {/* Filtre statut */}
-        <div className="flex flex-wrap gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6 print:hidden">
           {ALL_STATUSES.map((s) => (
             <button
               key={s.key}
@@ -225,9 +239,9 @@ export default function AgencyShipmentsPage() {
                       </p>
                     </div>
 
-                    {/* Actions */}
+                    {/* Actions — hidden in print */}
                     {actions.length > 0 && (
-                      <div className="flex flex-col gap-2 min-w-[200px]">
+                      <div className="flex flex-col gap-2 min-w-[200px] print:hidden">
                         {actions.map((a) => (
                           <button
                             key={a.status}

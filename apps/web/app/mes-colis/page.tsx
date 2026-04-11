@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, authHeader, fetchMe, logout, getRole } from "@/lib/api";
-import { Package, MapPin, ArrowRight, Clock, CheckCircle2, XCircle, Truck, Home, Building2 } from "lucide-react";
+import { Package, MapPin, ArrowRight, Clock, CheckCircle2, XCircle, Truck, Home, Building2, Search } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 
 type TripDetail = {
@@ -35,12 +35,12 @@ type Shipment = {
 };
 
 const TRACKING_STEPS = [
-  { key: "PENDING",    label: "En attente",         icon: Clock },
-  { key: "ACCEPTED",   label: "Accepté",            icon: CheckCircle2 },
-  { key: "DEPOSITED",  label: "Déposé au bureau",   icon: Building2 },
-  { key: "IN_TRANSIT", label: "En transit",          icon: Truck },
-  { key: "ARRIVED",    label: "Arrivé à destination",icon: MapPin },
-  { key: "DELIVERED",  label: "Livré",               icon: CheckCircle2 },
+  { key: "PENDING",    label: "En attente",          icon: Clock },
+  { key: "ACCEPTED",   label: "Accepté",             icon: CheckCircle2 },
+  { key: "DEPOSITED",  label: "Déposé au bureau",    icon: Building2 },
+  { key: "IN_TRANSIT", label: "En transit",           icon: Truck },
+  { key: "ARRIVED",    label: "Arrivé à destination", icon: MapPin },
+  { key: "DELIVERED",  label: "Livré",                icon: CheckCircle2 },
 ];
 
 const STATUS_ORDER = ["PENDING", "ACCEPTED", "DEPOSITED", "IN_TRANSIT", "ARRIVED", "DELIVERED"];
@@ -55,11 +55,24 @@ const STATUS_COLOR: Record<string, string> = {
   REJECTED:   "text-red-600",
 };
 
+const FILTER_OPTIONS = [
+  { key: "ALL",       label: "Tous" },
+  { key: "PENDING",   label: "En attente" },
+  { key: "ACCEPTED",  label: "Accepté" },
+  { key: "DEPOSITED", label: "Déposé" },
+  { key: "IN_TRANSIT",label: "En transit" },
+  { key: "ARRIVED",   label: "Arrivé" },
+  { key: "DELIVERED", label: "Livré" },
+  { key: "REJECTED",  label: "Refusé" },
+];
+
 export default function MesColisPage() {
   const router = useRouter();
-  const [shipments, setShipments] = useState<Shipment[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const [shipments, setShipments]   = useState<Shipment[]>([]);
+  const [loading, setLoading]       = useState(true);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [statusFilter, setStatusFilter]   = useState("ALL");
+  const [search, setSearch]               = useState("");
   const role = typeof window === "undefined" ? null : getRole();
 
   function handleLogout() { logout(); router.replace("/login"); }
@@ -100,6 +113,21 @@ export default function MesColisPage() {
     }
   }
 
+  const filtered = shipments.filter((sh) => {
+    if (statusFilter !== "ALL" && sh.status !== statusFilter) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const t = sh.trip_detail;
+      return (
+        t.origin_city.toLowerCase().includes(q) ||
+        t.dest_city.toLowerCase().includes(q) ||
+        t.agency_name.toLowerCase().includes(q) ||
+        sh.description?.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
   if (loading) return (
     <main className="min-h-screen bg-white flex items-center justify-center">
       <p className="text-slate-500">Chargement…</p>
@@ -126,19 +154,56 @@ export default function MesColisPage() {
       <div className="mx-auto max-w-4xl px-4 py-8">
         <div className="text-xs font-semibold tracking-widest text-blue-600 uppercase mb-2">Mon espace</div>
         <h1 className="text-2xl md:text-3xl font-extrabold mb-1">Mes colis</h1>
-        <p className="text-slate-500 text-sm mb-8">Suis l'état de tous tes envois en temps réel.</p>
+        <p className="text-slate-500 text-sm mb-6">Suis l'état de tous tes envois en temps réel.</p>
 
-        {shipments.length === 0 ? (
+        {/* Search + filter */}
+        <div className="mb-6 flex flex-col gap-3">
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher par ville, agence, contenu…"
+              className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {FILTER_OPTIONS.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setStatusFilter(f.key)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
+                  statusFilter === f.key
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                {f.label}
+                {f.key !== "ALL" && (
+                  <span className="ml-1 opacity-60">
+                    ({shipments.filter((s) => s.status === f.key).length})
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {filtered.length === 0 ? (
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-12 text-center">
             <Package className="mx-auto h-10 w-10 text-slate-300 mb-3" />
-            <p className="text-slate-500 font-medium">Aucun colis pour le moment.</p>
-            <Link href="/trips" className="mt-4 inline-block px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm">
-              Voir les trajets →
-            </Link>
+            <p className="text-slate-500 font-medium">
+              {shipments.length === 0 ? "Aucun colis pour le moment." : "Aucun résultat pour ce filtre."}
+            </p>
+            {shipments.length === 0 && (
+              <Link href="/trips" className="mt-4 inline-block px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm">
+                Voir les trajets →
+              </Link>
+            )}
           </div>
         ) : (
-          <div className="grid gap-6">
-            {shipments.map((sh) => (
+          <div className="grid gap-5">
+            {filtered.map((sh) => (
               <ShipmentCard
                 key={sh.id}
                 sh={sh}
@@ -186,15 +251,15 @@ function ShipmentCard({ sh, onConfirmDeposit, actionLoading }: {
         <div className="px-5 py-4 border-b border-slate-100">
           <div className="flex items-center gap-1 overflow-x-auto pb-1">
             {TRACKING_STEPS.map((step, i) => {
-              const done = currentIdx >= i;
+              const done   = currentIdx >= i;
               const active = currentIdx === i;
-              const Icon = step.icon;
+              const Icon   = step.icon;
               return (
                 <div key={step.key} className="flex items-center gap-1 shrink-0">
-                  <div className={`flex flex-col items-center gap-1`}>
+                  <div className="flex flex-col items-center gap-1">
                     <div className={`h-7 w-7 rounded-full flex items-center justify-center transition ${
                       active ? "bg-blue-600 text-white" :
-                      done ? "bg-emerald-100 text-emerald-600" :
+                      done   ? "bg-emerald-100 text-emerald-600" :
                       "bg-slate-100 text-slate-400"
                     }`}>
                       <Icon className="h-3.5 w-3.5" />
@@ -219,7 +284,7 @@ function ShipmentCard({ sh, onConfirmDeposit, actionLoading }: {
         </div>
       )}
 
-      {/* Infos */}
+      {/* Infos + actions */}
       <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-1 grid gap-1 text-sm text-slate-600">
           {sh.description && <p><span className="font-semibold text-slate-800">Description :</span> {sh.description}</p>}
@@ -230,17 +295,24 @@ function ShipmentCard({ sh, onConfirmDeposit, actionLoading }: {
           <p className="text-xs text-slate-400">Créé le {new Date(sh.created_at).toLocaleDateString("fr-FR")}</p>
         </div>
 
-        {/* Action client */}
-        {sh.status === "ACCEPTED" && (
-          <button
-            onClick={onConfirmDeposit}
-            disabled={actionLoading}
-            className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold transition"
+        <div className="flex flex-col sm:items-end gap-2 shrink-0">
+          <Link
+            href={`/mes-colis/${sh.id}`}
+            className="px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-sm font-semibold text-slate-700 transition text-center"
           >
-            <Building2 className="h-4 w-4" />
-            {actionLoading ? "Confirmation…" : "Confirmer dépôt"}
-          </button>
-        )}
+            Voir détails →
+          </Link>
+          {sh.status === "ACCEPTED" && (
+            <button
+              onClick={onConfirmDeposit}
+              disabled={actionLoading}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold transition"
+            >
+              <Building2 className="h-4 w-4" />
+              {actionLoading ? "Confirmation…" : "Confirmer dépôt"}
+            </button>
+          )}
+        </div>
       </div>
     </article>
   );

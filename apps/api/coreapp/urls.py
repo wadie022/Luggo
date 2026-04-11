@@ -6,7 +6,7 @@ from .views import (
     ShipmentCreateView, ShipmentClientView, MeView, AvatarUploadView,
     KYCUploadView, KYCStatusView,
     AgencyKYBUploadView, AgencyKYBStatusView,
-    AdminKYCListView, AdminKYCReviewView, AdminKYBListView, AdminKYBReviewView,
+    AdminKYCListView, AdminKYCReviewView, AdminKYBListView, AdminKYBReviewView, AdminStatsView,
     NotificationListView, NotificationUnreadCountView, NotificationReadView, NotificationReadAllView,
     AgencyListView,
     AgencyTripsView, AgencyTripEditView, AgencyShipmentsView, AgencyShipmentStatusView, AgencyStatsView,
@@ -41,7 +41,8 @@ urlpatterns = [
     path("kyc/upload/", KYCUploadView.as_view(), name="kyc-upload"),
     path("kyc/status/", KYCStatusView.as_view(), name="kyc-status"),
 
-    # Admin review
+    # Admin
+    path("admin/stats/", AdminStatsView.as_view(), name="admin-stats"),
     path("admin/kyc/", AdminKYCListView.as_view(), name="admin-kyc-list"),
     path("admin/kyc/<int:pk>/review/", AdminKYCReviewView.as_view(), name="admin-kyc-review"),
     path("admin/kyb/", AdminKYBListView.as_view(), name="admin-kyb-list"),

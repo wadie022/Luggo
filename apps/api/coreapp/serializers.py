@@ -11,7 +11,8 @@ class MeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("id", "username", "email", "role", "kyc_status", "avatar_url")
+        fields = ("id", "username", "email", "first_name", "last_name", "role", "kyc_status", "avatar_url")
+        read_only_fields = ("id", "username", "role")
 
     def get_kyc_status(self, obj):
         kyc = getattr(obj, 'kyc', None)
@@ -173,6 +174,8 @@ class AgencyShipmentSerializer(serializers.ModelSerializer):
             "customer_phone",
             "weight_kg",
             "description",
+            "delivery_type",
+            "delivery_address",
             "status",
             "created_at",
         ]

@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, authHeader, fetchMe, logout } from "@/lib/api";
-import { ShieldCheck, ShieldX, Clock, Eye, CheckCircle2, XCircle, Building2, User } from "lucide-react";
+import {
+  ShieldCheck, ShieldX, Clock, Eye, CheckCircle2, XCircle,
+  Building2, User, Package, TrendingUp, Users, Truck, BarChart3
+} from "lucide-react";
 
 type KYCItem = {
   id: number;
@@ -27,16 +30,39 @@ type KYBItem = {
   document_url?: string | null;
 };
 
+type Stats = {
+  total_clients: number;
+  total_agencies: number;
+  total_shipments: number;
+  by_status: Record<string, number>;
+  estimated_revenue: number;
+  total_kg: number;
+};
+
 const STATUS_BADGE: Record<string, string> = {
   VERIFIED: "bg-emerald-50 text-emerald-700 border-emerald-200",
   REJECTED: "bg-red-50 text-red-700 border-red-200",
   PENDING:  "bg-amber-50 text-amber-700 border-amber-200",
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  PENDING:    "En attente",
+  ACCEPTED:   "Acceptés",
+  REJECTED:   "Refusés",
+  DEPOSITED:  "Déposés",
+  IN_TRANSIT: "En transit",
+  ARRIVED:    "Arrivés",
+  DELIVERED:  "Livrés",
+};
+
+type Tab = "stats" | "kyc";
+
 export default function AdminDashboard() {
   const router = useRouter();
-  const [kyc, setKyc]     = useState<KYCItem[]>([]);
-  const [kyb, setKyb]     = useState<KYBItem[]>([]);
+  const [tab, setTab]       = useState<Tab>("stats");
+  const [kyc, setKyc]       = useState<KYCItem[]>([]);
+  const [kyb, setKyb]       = useState<KYBItem[]>([]);
+  const [stats, setStats]   = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter]   = useState("PENDING");
 
@@ -48,10 +74,17 @@ export default function AdminDashboard() {
         const me = await fetchMe();
         if (me.role !== "ADMIN") { router.replace("/trips"); return; }
       } catch { router.replace("/login"); return; }
+
+      const [statsRes] = await Promise.all([
+        fetch(`${API_BASE}/admin/stats/`, { headers: authHeader() }),
+      ]);
+      if (statsRes.ok) setStats(await statsRes.json());
+
       await reload();
       setLoading(false);
     }
     boot();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   async function reload(st = filter) {
@@ -93,7 +126,7 @@ export default function AdminDashboard() {
   );
 
   return (
-    <main className="min-h-screen bg-white text-slate-900">
+    <main className="min-h-screen bg-slate-50 text-slate-900">
       <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur border-b border-slate-800">
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
           <Link href="/dashboard/admin" className="flex items-center gap-2">
@@ -107,78 +140,168 @@ export default function AdminDashboard() {
       </header>
 
       <div className="mx-auto max-w-5xl px-4 py-10">
-        <h1 className="text-3xl font-extrabold mb-2">Vérifications en attente</h1>
-        <p className="text-slate-500 mb-8">Approuve ou rejette les documents d'identité et d'entreprise.</p>
-
-        {/* Filtres */}
+        {/* Tabs */}
         <div className="flex gap-2 mb-8">
-          {["PENDING", "VERIFIED", "REJECTED"].map((s) => (
-            <button
-              key={s}
-              onClick={() => handleFilter(s)}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold border transition ${
-                filter === s ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              {s === "PENDING" ? "En attente" : s === "VERIFIED" ? "Vérifiés" : "Rejetés"}
-            </button>
-          ))}
+          <button
+            onClick={() => setTab("stats")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition ${
+              tab === "stats" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+            }`}
+          >
+            <BarChart3 className="h-4 w-4" /> Statistiques
+          </button>
+          <button
+            onClick={() => setTab("kyc")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition ${
+              tab === "kyc" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+            }`}
+          >
+            <ShieldCheck className="h-4 w-4" /> Vérifications
+            {kyc.filter(k => k.status === "PENDING").length + kyb.filter(k => k.status === "PENDING").length > 0 && (
+              <span className="ml-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">
+                {kyc.filter(k => k.status === "PENDING").length + kyb.filter(k => k.status === "PENDING").length}
+              </span>
+            )}
+          </button>
         </div>
 
-        {/* KYC Clients */}
-        <Section title="Identités clients (KYC)" icon={<User className="h-5 w-5" />}>
-          {kyc.length === 0 ? (
-            <p className="text-slate-400 text-sm py-4">Aucun document.</p>
-          ) : kyc.map((item) => (
-            <DocCard
-              key={item.id}
-              id={item.id}
-              title={`Client — ${item.user_info?.username ?? `#${item.id}`}`}
-              subtitle={item.user_info?.email ?? ""}
-              status={item.status}
-              submittedAt={item.submitted_at}
-              docUrls={[item.id_front_url, item.id_back_url].filter(Boolean) as string[]}
-              onApprove={() => reviewKYC(item.id, "VERIFIED")}
-              onReject={() => {
-                const r = prompt("Raison du rejet :");
-                if (r !== null) reviewKYC(item.id, "REJECTED", r);
-              }}
-            />
-          ))}
-        </Section>
+        {/* ── STATS TAB ── */}
+        {tab === "stats" && stats && (
+          <div className="grid gap-6">
+            {/* KPI cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard
+                icon={<Users className="h-5 w-5 text-blue-600" />}
+                label="Clients"
+                value={stats.total_clients.toString()}
+                bg="bg-blue-50"
+              />
+              <StatCard
+                icon={<Building2 className="h-5 w-5 text-purple-600" />}
+                label="Agences"
+                value={stats.total_agencies.toString()}
+                bg="bg-purple-50"
+              />
+              <StatCard
+                icon={<Package className="h-5 w-5 text-amber-600" />}
+                label="Colis totaux"
+                value={stats.total_shipments.toString()}
+                bg="bg-amber-50"
+              />
+              <StatCard
+                icon={<TrendingUp className="h-5 w-5 text-emerald-600" />}
+                label="CA estimé"
+                value={`${stats.estimated_revenue.toFixed(0)} €`}
+                bg="bg-emerald-50"
+              />
+            </div>
 
-        {/* KYB Agences */}
-        <Section title="Documents entreprises (KYB)" icon={<Building2 className="h-5 w-5" />}>
-          {kyb.length === 0 ? (
-            <p className="text-slate-400 text-sm py-4">Aucun document.</p>
-          ) : kyb.map((item) => (
-            <DocCard
-              key={item.id}
-              id={item.id}
-              title={`Agence — ${item.agency_name ?? `#${item.id}`}`}
-              subtitle=""
-              status={item.status}
-              submittedAt={item.submitted_at}
-              docUrls={item.document_url ? [item.document_url] : []}
-              onApprove={() => reviewKYB(item.id, "VERIFIED")}
-              onReject={() => {
-                const r = prompt("Raison du rejet :");
-                if (r !== null) reviewKYB(item.id, "REJECTED", r);
-              }}
-            />
-          ))}
-        </Section>
+            {/* Volume */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-2 font-bold text-slate-800 mb-1">
+                <Truck className="h-4 w-4 text-blue-500" /> Volume transporté
+              </div>
+              <div className="text-3xl font-extrabold text-blue-700 mb-1">{stats.total_kg} kg</div>
+              <p className="text-xs text-slate-400">Somme des colis acceptés (hors refusés et en attente)</p>
+            </div>
+
+            {/* By status */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="font-bold text-slate-800 mb-4">Colis par statut</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {Object.entries(STATUS_LABELS).map(([key, label]) => (
+                  <div key={key} className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-center">
+                    <div className="text-2xl font-extrabold text-slate-800">{stats.by_status[key] ?? 0}</div>
+                    <div className="text-xs text-slate-500 font-medium mt-0.5">{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── KYC TAB ── */}
+        {tab === "kyc" && (
+          <div>
+            <h1 className="text-2xl font-extrabold mb-2">Vérifications</h1>
+            <p className="text-slate-500 mb-6 text-sm">Approuve ou rejette les documents d'identité et d'entreprise.</p>
+
+            <div className="flex gap-2 mb-8">
+              {["PENDING", "VERIFIED", "REJECTED"].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => handleFilter(s)}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold border transition ${
+                    filter === s ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  {s === "PENDING" ? "En attente" : s === "VERIFIED" ? "Vérifiés" : "Rejetés"}
+                </button>
+              ))}
+            </div>
+
+            <Section title="Identités clients (KYC)" icon={<User className="h-5 w-5" />}>
+              {kyc.length === 0 ? (
+                <p className="text-slate-400 text-sm py-4">Aucun document.</p>
+              ) : kyc.map((item) => (
+                <DocCard
+                  key={item.id}
+                  id={item.id}
+                  title={`Client — ${item.user_info?.username ?? `#${item.id}`}`}
+                  subtitle={item.user_info?.email ?? ""}
+                  status={item.status}
+                  submittedAt={item.submitted_at}
+                  docUrls={[item.id_front_url, item.id_back_url].filter(Boolean) as string[]}
+                  onApprove={() => reviewKYC(item.id, "VERIFIED")}
+                  onReject={() => {
+                    const r = prompt("Raison du rejet :");
+                    if (r !== null) reviewKYC(item.id, "REJECTED", r);
+                  }}
+                />
+              ))}
+            </Section>
+
+            <Section title="Documents entreprises (KYB)" icon={<Building2 className="h-5 w-5" />}>
+              {kyb.length === 0 ? (
+                <p className="text-slate-400 text-sm py-4">Aucun document.</p>
+              ) : kyb.map((item) => (
+                <DocCard
+                  key={item.id}
+                  id={item.id}
+                  title={`Agence — ${item.agency_name ?? `#${item.id}`}`}
+                  subtitle=""
+                  status={item.status}
+                  submittedAt={item.submitted_at}
+                  docUrls={item.document_url ? [item.document_url] : []}
+                  onApprove={() => reviewKYB(item.id, "VERIFIED")}
+                  onReject={() => {
+                    const r = prompt("Raison du rejet :");
+                    if (r !== null) reviewKYB(item.id, "REJECTED", r);
+                  }}
+                />
+              ))}
+            </Section>
+          </div>
+        )}
       </div>
     </main>
+  );
+}
+
+function StatCard({ icon, label, value, bg }: { icon: React.ReactNode; label: string; value: string; bg: string }) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-5">
+      <div className={`h-10 w-10 rounded-2xl ${bg} flex items-center justify-center mb-3`}>{icon}</div>
+      <div className="text-2xl font-extrabold text-slate-900">{value}</div>
+      <div className="text-xs font-semibold text-slate-500 mt-0.5">{label}</div>
+    </div>
   );
 }
 
 function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="mb-10">
-      <div className="flex items-center gap-2 font-bold text-lg mb-4 text-slate-800">
-        {icon} {title}
-      </div>
+      <div className="flex items-center gap-2 font-bold text-lg mb-4 text-slate-800">{icon} {title}</div>
       <div className="grid gap-3">{children}</div>
     </div>
   );
@@ -204,31 +327,19 @@ function DocCard({ id, title, subtitle, status, submittedAt, docUrls, onApprove,
         </div>
         {status === "PENDING" && (
           <div className="flex gap-2 shrink-0">
-            <button
-              onClick={onApprove}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold"
-            >
+            <button onClick={onApprove} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold">
               <CheckCircle2 className="h-4 w-4" /> Approuver
             </button>
-            <button
-              onClick={onReject}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-sm font-semibold"
-            >
+            <button onClick={onReject} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-sm font-semibold">
               <XCircle className="h-4 w-4" /> Rejeter
             </button>
           </div>
         )}
       </div>
-
-      {/* Documents */}
       {docUrls.length > 0 && (
         <div className="flex flex-wrap gap-3">
           {docUrls.map((url, i) => (
-            <a
-              key={i}
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
+            <a key={i} href={url} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 text-sm font-semibold text-slate-700 hover:text-blue-700 transition"
             >
               <Eye className="h-4 w-4" />

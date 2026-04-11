@@ -10,6 +10,8 @@ type Me = {
   id: number;
   username: string;
   email: string;
+  first_name: string;
+  last_name: string;
   role: string;
   kyc_status: string;
   avatar_url: string | null;
@@ -47,11 +49,17 @@ export default function ProfilePage() {
   const router = useRouter();
   const avatarRef = useRef<HTMLInputElement>(null);
 
-  const [me, setMe] = useState<Me | null>(null);
-  const [kyc, setKyc] = useState<KYCData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [me, setMe]     = useState<Me | null>(null);
+  const [kyc, setKyc]   = useState<KYCData | null>(null);
+  const [loading, setLoading]   = useState(true);
   const [uploading, setUploading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  const [editMode, setEditMode]     = useState(false);
+  const [firstName, setFirstName]   = useState("");
+  const [lastName, setLastName]     = useState("");
+  const [saving, setSaving]         = useState(false);
+  const [saveMsg, setSaveMsg]       = useState<string | null>(null);
 
   function handleLogout() { logout(); router.replace("/login"); }
 
@@ -61,6 +69,8 @@ export default function ProfilePage() {
         const meData = await fetchMe();
         setMe(meData);
         setAvatarPreview(meData.avatar_url);
+        setFirstName(meData.first_name ?? "");
+        setLastName(meData.last_name ?? "");
       } catch {
         router.replace("/login"); return;
       }
@@ -76,6 +86,29 @@ export default function ProfilePage() {
     }
     boot();
   }, [router]);
+
+  async function handleSaveProfile(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setSaveMsg(null);
+    try {
+      const res = await fetch(`${API_BASE}/me/`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeader() },
+        body: JSON.stringify({ first_name: firstName, last_name: lastName }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMe(data);
+        setSaveMsg("Profil mis à jour !");
+        setEditMode(false);
+      } else {
+        setSaveMsg("Erreur lors de la mise à jour.");
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -171,10 +204,60 @@ export default function ProfilePage() {
 
         {/* Infos du profil */}
         <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6 mb-6">
-          <h2 className="font-bold text-slate-900 mb-5 text-lg">Informations personnelles</h2>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="font-bold text-slate-900 text-lg">Informations personnelles</h2>
+            <button
+              onClick={() => { setEditMode(!editMode); setSaveMsg(null); }}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700"
+            >
+              {editMode ? "Annuler" : "Modifier"}
+            </button>
+          </div>
+
+          {editMode ? (
+            <form onSubmit={handleSaveProfile} className="grid gap-3 mb-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Prénom</label>
+                <input
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Prénom"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Nom</label>
+                <input
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Nom de famille"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              {saveMsg && (
+                <p className={`text-xs font-semibold ${saveMsg.includes("Erreur") ? "text-red-600" : "text-emerald-600"}`}>
+                  {saveMsg}
+                </p>
+              )}
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold"
+              >
+                {saving ? "Enregistrement…" : "Enregistrer"}
+              </button>
+            </form>
+          ) : (
+            <>
+              {saveMsg && <p className="text-xs font-semibold text-emerald-600 mb-3">{saveMsg}</p>}
+            </>
+          )}
+
           <div className="grid gap-4">
             <InfoRow icon={<User className="h-4 w-4" />} label="Nom d'utilisateur" value={me?.username ?? "—"} />
             <InfoRow icon={<Mail className="h-4 w-4" />} label="Email" value={me?.email ?? "—"} />
+            {me?.first_name && <InfoRow icon={<User className="h-4 w-4" />} label="Prénom" value={me.first_name} />}
+            {me?.last_name  && <InfoRow icon={<User className="h-4 w-4" />} label="Nom" value={me.last_name} />}
 
             {ext?.last_name && (
               <InfoRow icon={<User className="h-4 w-4" />} label="Nom" value={ext.last_name} fromKyc />

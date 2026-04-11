@@ -176,6 +176,14 @@ class MeView(APIView):
     def get(self, request):
         return Response(MeSerializer(request.user, context={"request": request}).data)
 
+    def patch(self, request):
+        allowed = {"first_name", "last_name", "email"}
+        data = {k: v for k, v in request.data.items() if k in allowed}
+        ser = MeSerializer(request.user, data=data, partial=True, context={"request": request})
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data)
+
 
 class AvatarUploadView(APIView):
     """PATCH /api/me/avatar/ — upload ou remplace la photo de profil."""
@@ -548,6 +556,45 @@ class AgencyListView(generics.ListAPIView):
             "id", "legal_name", "city", "country", "address", "latitude", "longitude"
         )
         return Response(list(agencies))
+
+
+class AdminStatsView(APIView):
+    """GET /api/admin/stats/ — statistiques globales pour l'admin."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != "ADMIN":
+            return Response({"detail": "Interdit."}, status=status.HTTP_403_FORBIDDEN)
+
+        from django.contrib.auth import get_user_model
+        from django.db.models import Count, Sum
+        U = get_user_model()
+
+        total_clients  = U.objects.filter(role="CLIENT").count()
+        total_agencies = U.objects.filter(role="AGENCY").count()
+        total_shipments = Shipment.objects.count()
+
+        by_status = dict(
+            Shipment.objects.values("status").annotate(c=Count("id")).values_list("status", "c")
+        )
+
+        active = Shipment.objects.exclude(
+            status__in=["PENDING", "REJECTED"]
+        ).select_related("trip")
+        estimated_revenue = sum(float(s.weight_kg) * float(s.trip.price_per_kg) for s in active)
+
+        total_kg = Shipment.objects.exclude(
+            status__in=["PENDING", "REJECTED"]
+        ).aggregate(total=Coalesce(Sum("weight_kg"), 0.0))["total"]
+
+        return Response({
+            "total_clients": total_clients,
+            "total_agencies": total_agencies,
+            "total_shipments": total_shipments,
+            "by_status": by_status,
+            "estimated_revenue": round(estimated_revenue, 2),
+            "total_kg": round(float(total_kg), 1),
+        })
 
 
 class AgencyProfileView(APIView):
