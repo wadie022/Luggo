@@ -8,6 +8,7 @@ from .views import (
     AgencyKYBUploadView, AgencyKYBStatusView,
     AdminKYCListView, AdminKYCReviewView, AdminKYBListView, AdminKYBReviewView,
     AdminStatsView, AdminUsersView, AdminUserActionView,
+    ReclamationView, AdminReclamationsView, AdminReclamationReplyView,
     NotificationListView, NotificationUnreadCountView, NotificationReadView, NotificationReadAllView,
     AgencyListView,
     AgencyTripsView, AgencyTripEditView, AgencyShipmentsView, AgencyShipmentStatusView, AgencyStatsView,
@@ -34,6 +35,8 @@ urlpatterns = [
     path("trips/", TripListView.as_view(), name="trip-list"),
     path("trips/<int:pk>/", TripDetailView.as_view(), name="trip-detail"),
 
+    path("reclamations/", ReclamationView.as_view(), name="reclamations"),
+
     path("shipments/", ShipmentCreateView.as_view(), name="shipment-create"),
     path("shipments/<int:pk>/", ShipmentClientView.as_view(), name="shipment-client"),
     path("shipments/<int:pk>/tracking/", ShipmentTrackingView.as_view(), name="shipment-tracking"),
@@ -46,6 +49,8 @@ urlpatterns = [
     path("admin/stats/", AdminStatsView.as_view(), name="admin-stats"),
     path("admin/users/", AdminUsersView.as_view(), name="admin-users"),
     path("admin/users/<int:pk>/", AdminUserActionView.as_view(), name="admin-user-action"),
+    path("admin/reclamations/", AdminReclamationsView.as_view(), name="admin-reclamations"),
+    path("admin/reclamations/<int:pk>/", AdminReclamationReplyView.as_view(), name="admin-reclamation-reply"),
     path("admin/kyc/", AdminKYCListView.as_view(), name="admin-kyc-list"),
     path("admin/kyc/<int:pk>/review/", AdminKYCReviewView.as_view(), name="admin-kyc-review"),
     path("admin/kyb/", AdminKYBListView.as_view(), name="admin-kyb-list"),

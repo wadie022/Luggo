@@ -147,6 +147,32 @@ class Shipment(models.Model):
         return f"{self.customer_name} ({self.weight_kg}kg) → trip {self.trip_id}"
 
 # -----------------------------------------
+# Réclamation client
+# -----------------------------------------
+class Reclamation(models.Model):
+    STATUS_CHOICES = [
+        ("OPEN",        "Ouverte"),
+        ("IN_PROGRESS", "En cours de traitement"),
+        ("RESOLVED",    "Résolue"),
+        ("CLOSED",      "Fermée"),
+    ]
+    user     = models.ForeignKey("User", on_delete=models.CASCADE, related_name="reclamations")
+    shipment = models.ForeignKey("Shipment", null=True, blank=True, on_delete=models.SET_NULL, related_name="reclamations")
+    subject  = models.CharField(max_length=200)
+    message  = models.TextField()
+    status   = models.CharField(max_length=20, choices=STATUS_CHOICES, default="OPEN")
+    admin_response = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Réclamation #{self.id} — {self.user.username} ({self.status})"
+
+
+# -----------------------------------------
 # Paiement lié à un Shipment
 # -----------------------------------------
 class Payment(models.Model):

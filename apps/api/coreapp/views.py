@@ -17,11 +17,11 @@ import mimetypes
 import re as _re
 from django.utils import timezone
 
-from .models import Trip, Shipment, KYCDocument, AgencyDocument, Notification
+from .models import Trip, Shipment, KYCDocument, AgencyDocument, Notification, Reclamation
 from .serializers import (
     RegisterSerializer, TripSerializer, ShipmentSerializer, MeSerializer,
     AgencyTripSerializer, AgencyShipmentSerializer, KYCDocumentSerializer,
-    AgencyDocumentSerializer, NotificationSerializer
+    AgencyDocumentSerializer, NotificationSerializer, ReclamationSerializer
 )
 from .permissions import IsAgency
 from .emails import (
@@ -561,6 +561,68 @@ class AgencyKYBStatusView(APIView):
 # ============================
 # ✅ AGENCY ENDPOINTS
 # ============================
+
+class ReclamationView(generics.ListCreateAPIView):
+    """
+    GET  /api/reclamations/ — mes réclamations
+    POST /api/reclamations/ — soumettre une réclamation
+    """
+    serializer_class = ReclamationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Reclamation.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        rec = serializer.save(user=self.request.user)
+        # Notif in-app
+        notify(self.request.user, "Réclamation reçue 📋",
+               "Nous avons bien reçu ta réclamation. Notre équipe te répondra sous 48h.", "/reclamations")
+
+
+class AdminReclamationsView(generics.ListAPIView):
+    """GET /api/admin/reclamations/?status= — toutes les réclamations pour l'admin."""
+    serializer_class = ReclamationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if self.request.user.role != "ADMIN":
+            return Reclamation.objects.none()
+        qs = Reclamation.objects.select_related("user", "shipment", "shipment__trip").all()
+        st = self.request.query_params.get("status")
+        if st:
+            qs = qs.filter(status=st.upper())
+        return qs
+
+
+class AdminReclamationReplyView(APIView):
+    """PATCH /api/admin/reclamations/<id>/ — répondre + changer statut."""
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        if request.user.role != "ADMIN":
+            return Response({"detail": "Interdit."}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            rec = Reclamation.objects.select_related("user").get(pk=pk)
+        except Reclamation.DoesNotExist:
+            return Response({"detail": "Introuvable."}, status=404)
+
+        new_status = request.data.get("status", "").upper()
+        admin_response = request.data.get("admin_response", "")
+
+        if new_status and new_status in ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"]:
+            rec.status = new_status
+        if admin_response:
+            rec.admin_response = admin_response
+        rec.save()
+
+        # Notifier le client
+        if rec.user and admin_response:
+            notify(rec.user, "Réponse à ta réclamation 📩",
+                   f"L'équipe Luggo a répondu à ta réclamation : {rec.subject}", "/reclamations")
+
+        return Response(ReclamationSerializer(rec).data)
+
 
 class AgencyListView(generics.ListAPIView):
     """GET /api/agencies/ — liste publique des agences vérifiées avec coordonnées."""

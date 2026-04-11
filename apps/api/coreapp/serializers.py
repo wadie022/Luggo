@@ -1,7 +1,7 @@
 # coreapp/serializers.py
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from .models import User, Trip, Shipment, Agency, KYCDocument, AgencyDocument, Notification
+from .models import User, Trip, Shipment, Agency, KYCDocument, AgencyDocument, Notification, Reclamation
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 
@@ -196,3 +196,22 @@ class NotificationSerializer(serializers.ModelSerializer):
         model = Notification
         fields = ("id", "title", "message", "link", "is_read", "created_at")
         read_only_fields = ("id", "title", "message", "link", "created_at")
+
+
+class ReclamationSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source="user.username", read_only=True)
+    email    = serializers.CharField(source="user.email",    read_only=True)
+    shipment_route = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Reclamation
+        fields = ("id", "user", "username", "email", "shipment", "shipment_route",
+                  "subject", "message", "status", "admin_response", "created_at", "updated_at")
+        read_only_fields = ("id", "user", "username", "email", "shipment_route",
+                            "status", "admin_response", "created_at", "updated_at")
+
+    def get_shipment_route(self, obj):
+        if not obj.shipment:
+            return None
+        t = obj.shipment.trip
+        return f"{t.origin_city} ({t.origin_country}) → {t.dest_city} ({t.dest_country})"
