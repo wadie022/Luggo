@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, authHeader, fetchMe, logout } from "@/lib/api";
-import { MapPin, Plus, Trash2, ArrowLeft, CheckCircle2, XCircle, Star } from "lucide-react";
+import { MapPin, Plus, Trash2, ArrowLeft, CheckCircle2, XCircle, Star, LocateFixed } from "lucide-react";
 import dynamic from "next/dynamic";
 
 const BranchMap = dynamic(() => import("@/components/BranchMap"), { ssr: false });
@@ -22,16 +22,32 @@ type Branch = {
 
 const EMPTY: Omit<Branch, "id"> = { label: "", address: "", city: "", country: "", latitude: null, longitude: null, is_main: false };
 
+async function geocodeAddress(address: string, city: string, country: string): Promise<{ lat: number; lon: number } | null> {
+  const query = [address, city, country].filter(Boolean).join(", ");
+  if (!query) return null;
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`,
+      { headers: { "Accept-Language": "fr" } }
+    );
+    const data = await res.json();
+    if (!data.length) return null;
+    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+  } catch {
+    return null;
+  }
+}
+
 export default function AgencyBranchesPage() {
   const router = useRouter();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading]   = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm]         = useState({ ...EMPTY });
-  const [geocoding, setGeocoding] = useState(false);
   const [saving, setSaving]     = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg]   = useState<string | null>(null);
+  const [locatingId, setLocatingId] = useState<number | null>(null);
 
   function handleLogout() { logout(); router.replace("/login"); }
 
@@ -52,35 +68,32 @@ export default function AgencyBranchesPage() {
     if (res.ok) setBranches(await res.json());
   }
 
-  async function handleGeocode() {
-    const query = [form.address, form.city, form.country].filter(Boolean).join(", ");
-    if (!query) { setErrorMsg("Entre une adresse d'abord."); return; }
-    setGeocoding(true); setErrorMsg(null);
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`,
-        { headers: { "Accept-Language": "fr" } }
-      );
-      const data = await res.json();
-      if (!data.length) { setErrorMsg("Adresse introuvable."); return; }
-      setForm(f => ({ ...f, latitude: parseFloat(data[0].lat), longitude: parseFloat(data[0].lon) }));
-      setSuccessMsg(`Coordonnées trouvées ✓`);
-    } catch { setErrorMsg("Erreur géolocalisation."); }
-    finally { setGeocoding(false); }
-  }
-
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true); setSuccessMsg(null); setErrorMsg(null);
-    // Géolocalisation automatique si pas encore de coordonnées
-    if (!form.latitude || !form.longitude) {
-      await handleGeocode();
+
+    // Géolocalise directement ici (pas via setForm qui est async)
+    let latitude = form.latitude;
+    let longitude = form.longitude;
+
+    if (!latitude || !longitude) {
+      const coords = await geocodeAddress(form.address, form.city, form.country);
+      if (coords) {
+        latitude = coords.lat;
+        longitude = coords.lon;
+      }
     }
+
     try {
       const res = await fetch(`${API_BASE}/agency/branches/`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeader() },
-        body: JSON.stringify({ ...form, country: form.country.trim().toUpperCase().slice(0, 2) }),
+        body: JSON.stringify({
+          ...form,
+          latitude,
+          longitude,
+          country: form.country.trim().toUpperCase().slice(0, 2),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -108,6 +121,29 @@ export default function AgencyBranchesPage() {
       body: JSON.stringify({ is_main: true }),
     });
     await reload();
+  }
+
+  async function handleLocateBranch(b: Branch) {
+    setLocatingId(b.id);
+    setSuccessMsg(null); setErrorMsg(null);
+    const coords = await geocodeAddress(b.address, b.city, b.country);
+    if (!coords) {
+      setErrorMsg(`Impossible de géolocaliser "${b.label}". Vérifie l'adresse.`);
+      setLocatingId(null);
+      return;
+    }
+    const res = await fetch(`${API_BASE}/agency/branches/${b.id}/`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...authHeader() },
+      body: JSON.stringify({ latitude: coords.lat, longitude: coords.lon }),
+    });
+    if (res.ok) {
+      setSuccessMsg(`"${b.label}" localisée sur la carte !`);
+      await reload();
+    } else {
+      setErrorMsg("Erreur lors de la mise à jour.");
+    }
+    setLocatingId(null);
   }
 
   if (loading) return (
@@ -190,12 +226,6 @@ export default function AgencyBranchesPage() {
                 className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
 
-            {form.latitude && form.longitude && (
-              <div className="text-xs text-emerald-600 font-semibold">
-                📍 {form.latitude.toFixed(4)}, {form.longitude.toFixed(4)} ✓
-              </div>
-            )}
-
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={form.is_main} onChange={e => setForm(f => ({ ...f, is_main: e.target.checked }))}
                 className="rounded" />
@@ -205,7 +235,7 @@ export default function AgencyBranchesPage() {
             <div className="flex gap-3">
               <button type="submit" disabled={saving}
                 className="px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold text-sm">
-                {saving ? "Ajout…" : "Ajouter l'adresse"}
+                {saving ? "Ajout en cours…" : "Ajouter l'adresse"}
               </button>
               <button type="button" onClick={() => setShowForm(false)}
                 className="px-4 py-2.5 rounded-2xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50">
@@ -220,6 +250,14 @@ export default function AgencyBranchesPage() {
           <BranchMap branches={branches} />
         </div>
 
+        {/* Note si adresses sans coordonnées */}
+        {branches.some(b => !b.latitude || !b.longitude) && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 mb-4 flex items-center gap-2">
+            <LocateFixed className="h-4 w-4 shrink-0" />
+            Certaines adresses n'ont pas de coordonnées — clique sur <strong className="ml-1">Localiser</strong> pour les afficher sur la carte.
+          </div>
+        )}
+
         {/* Liste */}
         {branches.length === 0 ? (
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-10 text-center">
@@ -232,8 +270,8 @@ export default function AgencyBranchesPage() {
             {branches.map(b => (
               <div key={b.id} className="rounded-3xl border border-slate-200 bg-white p-5 flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0">
-                    <MapPin className="h-5 w-5 text-blue-600" />
+                  <div className={`h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 ${b.latitude && b.longitude ? "bg-blue-50" : "bg-amber-50"}`}>
+                    <MapPin className={`h-5 w-5 ${b.latitude && b.longitude ? "text-blue-600" : "text-amber-500"}`} />
                   </div>
                   <div>
                     <div className="font-semibold text-slate-900 flex items-center gap-2">
@@ -247,12 +285,25 @@ export default function AgencyBranchesPage() {
                     <div className="text-sm text-slate-500 mt-0.5">
                       {[b.address, b.city, b.country].filter(Boolean).join(", ")}
                     </div>
-                    {b.latitude && b.longitude && (
-                      <div className="text-xs text-slate-400 mt-0.5">{b.latitude.toFixed(4)}, {b.longitude.toFixed(4)}</div>
+                    {b.latitude && b.longitude ? (
+                      <div className="text-xs text-emerald-600 font-medium mt-0.5">📍 {b.latitude.toFixed(4)}, {b.longitude.toFixed(4)}</div>
+                    ) : (
+                      <div className="text-xs text-amber-600 mt-0.5">⚠ Pas encore sur la carte</div>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  {(!b.latitude || !b.longitude) && (
+                    <button
+                      onClick={() => handleLocateBranch(b)}
+                      disabled={locatingId === b.id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold disabled:opacity-60"
+                      title="Géolocaliser cette adresse"
+                    >
+                      <LocateFixed className="h-3.5 w-3.5" />
+                      {locatingId === b.id ? "…" : "Localiser"}
+                    </button>
+                  )}
                   {!b.is_main && (
                     <button onClick={() => handleSetMain(b.id)}
                       className="p-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700"
