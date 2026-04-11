@@ -215,12 +215,10 @@ export default function AgencyBranchesPage() {
           </form>
         )}
 
-        {/* Map */}
-        {branches.filter(b => b.latitude && b.longitude).length > 0 && (
-          <div className="rounded-3xl overflow-hidden border border-slate-200 mb-6" style={{ height: 320 }}>
-            <BranchMap branches={branches} />
-          </div>
-        )}
+        {/* Map — toujours visible */}
+        <div className="rounded-3xl overflow-hidden border border-slate-200 mb-6" style={{ height: 340 }}>
+          <BranchMap branches={branches} />
+        </div>
 
         {/* Liste */}
         {branches.length === 0 ? (

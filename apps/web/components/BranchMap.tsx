@@ -25,15 +25,18 @@ type Branch = {
 
 export default function BranchMap({ branches }: { branches: Branch[] }) {
   const withCoords = branches.filter(b => b.latitude && b.longitude);
-  if (!withCoords.length) return null;
 
-  const center: [number, number] = [
-    withCoords.reduce((s, b) => s + b.latitude!, 0) / withCoords.length,
-    withCoords.reduce((s, b) => s + b.longitude!, 0) / withCoords.length,
-  ];
+  const center: [number, number] = withCoords.length
+    ? [
+        withCoords.reduce((s, b) => s + b.latitude!, 0) / withCoords.length,
+        withCoords.reduce((s, b) => s + b.longitude!, 0) / withCoords.length,
+      ]
+    : [38, 5]; // centre par défaut France/Maroc
+
+  const zoom = withCoords.length ? 5 : 4;
 
   return (
-    <MapContainer center={center} zoom={5} style={{ height: "100%", width: "100%" }}>
+    <MapContainer center={center} zoom={zoom} style={{ height: "100%", width: "100%" }}>
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
