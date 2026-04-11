@@ -12,6 +12,7 @@ class User(AbstractUser):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='CLIENT')
     kyc_status = models.CharField(max_length=20, choices=KYC_STATUS, default='PENDING')
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+    email = models.EmailField(unique=True)
 
     def __str__(self):
         return f"{self.username} ({self.role})"
