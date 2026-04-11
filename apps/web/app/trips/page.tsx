@@ -123,11 +123,10 @@ export default function TripsPage() {
           {menuOpen && (
             <div className="md:hidden absolute top-14 left-0 right-0 bg-slate-900 border-b border-slate-800 px-4 py-4 flex flex-col gap-3 z-50">
               <Link href="/trips" onClick={() => setMenuOpen(false)} className="text-white font-semibold py-2">Trajets</Link>
-              <Link href="/mes-colis" onClick={() => setMenuOpen(false)} className="text-slate-200 py-2">Mes colis</Link>
+              {role !== "AGENCY" && <Link href="/mes-colis" onClick={() => setMenuOpen(false)} className="text-slate-200 py-2">Mes colis</Link>}
               <Link href="/map" onClick={() => setMenuOpen(false)} className="text-slate-200 py-2">Carte des agences</Link>
               <Link href="/reclamations" onClick={() => setMenuOpen(false)} className="text-slate-200 py-2">Réclamations</Link>
               <Link href="/profile" onClick={() => setMenuOpen(false)} className="text-slate-200 py-2">Mon profil</Link>
-              {role === "AGENCY" && <Link href="/dashboard/agency" onClick={() => setMenuOpen(false)} className="text-emerald-300 py-2">Dashboard agence</Link>}
               <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="text-left text-red-400 py-2">Déconnexion</button>
             </div>
           )}
