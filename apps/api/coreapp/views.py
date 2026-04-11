@@ -494,7 +494,20 @@ class AdminKYBReviewView(APIView):
         kyb.save()
 
         kyb.agency.kyc_status = new_status
-        kyb.agency.save(update_fields=["kyc_status"])
+        if new_status == "VERIFIED":
+            data = kyb.extracted_data or {}
+            legal_name  = request.data.get("legal_name")  or data.get("company_name", "")
+            reg_number  = request.data.get("registration_number") or data.get("registration_number", "")
+            update_fields = ["kyc_status"]
+            if legal_name:
+                kyb.agency.legal_name = legal_name
+                update_fields.append("legal_name")
+            if reg_number:
+                kyb.agency.registration_number = reg_number
+                update_fields.append("registration_number")
+            kyb.agency.save(update_fields=update_fields)
+        else:
+            kyb.agency.save(update_fields=["kyc_status"])
         if new_status == "VERIFIED":
             send_kyb_approved(kyb.agency.user.email, kyb.agency.legal_name)
             notify(kyb.agency.user, "Entreprise vérifiée ✅", f"{kyb.agency.legal_name} a été validée.", "/dashboard/agency")

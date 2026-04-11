@@ -30,6 +30,7 @@ type KYBItem = {
   verified_at: string | null;
   agency_name?: string;
   document_url?: string | null;
+  extracted_data?: { company_name?: string; registration_number?: string; manager_name?: string; legal_form?: string } | null;
 };
 
 type Stats = {
@@ -191,11 +192,11 @@ export default function AdminDashboard() {
     await reload();
   }
 
-  async function reviewKYB(id: number, newStatus: "VERIFIED" | "REJECTED", reason = "") {
+  async function reviewKYB(id: number, newStatus: "VERIFIED" | "REJECTED", reason = "", legalName = "", regNumber = "") {
     await fetch(`${API_BASE}/admin/kyb/${id}/review/`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...authHeader() },
-      body: JSON.stringify({ status: newStatus, rejection_reason: reason }),
+      body: JSON.stringify({ status: newStatus, rejection_reason: reason, legal_name: legalName, registration_number: regNumber }),
     });
     await reload();
   }
@@ -577,19 +578,11 @@ export default function AdminDashboard() {
               {kyb.length === 0 ? (
                 <p className="text-slate-400 text-sm py-4">Aucun document.</p>
               ) : kyb.map((item) => (
-                <DocCard
+                <KYBCard
                   key={item.id}
-                  id={item.id}
-                  title={`Agence — ${item.agency_name ?? `#${item.id}`}`}
-                  subtitle=""
-                  status={item.status}
-                  submittedAt={item.submitted_at}
-                  docUrls={item.document_url ? [item.document_url] : []}
-                  onApprove={() => reviewKYB(item.id, "VERIFIED")}
-                  onReject={() => {
-                    const r = prompt("Raison du rejet :");
-                    if (r !== null) reviewKYB(item.id, "REJECTED", r);
-                  }}
+                  item={item}
+                  onApprove={(legalName, regNumber) => reviewKYB(item.id, "VERIFIED", "", legalName, regNumber)}
+                  onReject={(reason) => reviewKYB(item.id, "REJECTED", reason)}
                 />
               ))}
             </Section>
@@ -713,6 +706,100 @@ function KYCCard({ item, onApprove, onReject }: {
               {docUrls.length > 1 ? (i === 0 ? "Recto" : "Verso") : "Voir le document"}
             </a>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function KYBCard({ item, onApprove, onReject }: {
+  item: KYBItem;
+  onApprove: (legalName: string, regNumber: string) => void;
+  onReject: (reason: string) => void;
+}) {
+  const [showForm, setShowForm] = useState(false);
+  const [legalName, setLegalName]   = useState(item.extracted_data?.company_name ?? item.agency_name ?? "");
+  const [regNumber, setRegNumber]   = useState(item.extracted_data?.registration_number ?? "");
+  const [rejectMode, setRejectMode] = useState(false);
+  const [reason, setReason]         = useState("");
+
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 flex flex-col gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-slate-900">Agence — {item.agency_name ?? `#${item.id}`}</div>
+          {item.extracted_data?.manager_name && <div className="text-sm text-slate-500">Gérant : {item.extracted_data.manager_name}</div>}
+          <div className="text-xs text-slate-400 mt-1">
+            Soumis le {new Date(item.submitted_at).toLocaleDateString("fr-FR")} à {new Date(item.submitted_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+          </div>
+        </div>
+        <div className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold ${STATUS_BADGE[item.status] ?? STATUS_BADGE.PENDING}`}>
+          {item.status === "VERIFIED" ? <ShieldCheck className="h-3.5 w-3.5" /> : item.status === "REJECTED" ? <ShieldX className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
+          {item.status}
+        </div>
+        {item.status === "PENDING" && !showForm && !rejectMode && (
+          <div className="flex gap-2 shrink-0">
+            <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold">
+              <CheckCircle2 className="h-4 w-4" /> Approuver
+            </button>
+            <button onClick={() => setRejectMode(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-sm font-semibold">
+              <XCircle className="h-4 w-4" /> Rejeter
+            </button>
+          </div>
+        )}
+      </div>
+
+      {showForm && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 grid gap-3">
+          <div className="text-sm font-semibold text-emerald-800">Confirmer les informations de l'entreprise</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Raison sociale *</label>
+              <input value={legalName} onChange={e => setLegalName(e.target.value)} placeholder="Nom de l'entreprise"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">N° d'enregistrement</label>
+              <input value={regNumber} onChange={e => setRegNumber(e.target.value)} placeholder="SIRET / RC / …"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => { onApprove(legalName, regNumber); setShowForm(false); }}
+              disabled={!legalName.trim()}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold">
+              Valider
+            </button>
+            <button onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50">
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+
+      {rejectMode && (
+        <div className="rounded-2xl border border-red-200 bg-red-50/50 p-4 grid gap-3">
+          <div className="text-sm font-semibold text-red-800">Raison du rejet</div>
+          <textarea value={reason} onChange={e => setReason(e.target.value)} rows={2} placeholder="Ex : Document expiré, illisible…"
+            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none" />
+          <div className="flex gap-2">
+            <button onClick={() => { onReject(reason); setRejectMode(false); }}
+              className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold">
+              Confirmer le rejet
+            </button>
+            <button onClick={() => setRejectMode(false)} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50">
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+
+      {item.document_url && (
+        <div className="flex flex-wrap gap-3">
+          <a href={item.document_url} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 text-sm font-semibold text-slate-700 hover:text-blue-700 transition">
+            <Eye className="h-4 w-4" /> Voir le document
+          </a>
         </div>
       )}
     </div>

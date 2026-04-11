@@ -24,6 +24,7 @@ class Agency(models.Model):
     # 1–1 avec un User : une agence appartient à un compte utilisateur 'AGENCY'
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="agency")
     legal_name = models.CharField(max_length=120)      # raison sociale
+    registration_number = models.CharField(max_length=50, blank=True)  # SIRET / RC / …
     country = models.CharField(max_length=2)           # code pays ISO (FR/BE/ES/CH/I/MA)
     city = models.CharField(max_length=80)             # ville
     kyc_status = models.CharField(max_length=20, default='PENDING')  # statut vérification (KYC)
