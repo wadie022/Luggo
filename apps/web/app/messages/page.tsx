@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { API_BASE, authHeader, fetchMe, logout } from "@/lib/api";
 import { ArrowLeft, Send, MessageSquare, ChevronLeft } from "lucide-react";
@@ -38,6 +38,14 @@ function timeAgo(iso: string) {
 }
 
 export default function MessagesPage() {
+  return (
+    <Suspense>
+      <MessagesContent />
+    </Suspense>
+  );
+}
+
+function MessagesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [me, setMe] = useState<{ id: number; username: string } | null>(null);
