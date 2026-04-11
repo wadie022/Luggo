@@ -8,17 +8,19 @@ import { Building2, MapPin, Search, Save, ArrowLeft, CheckCircle2, XCircle } fro
 
 type AgencyProfile = {
   legal_name: string;
+  registration_number: string;
   city: string;
   country: string;
   address: string;
   latitude: number | null;
   longitude: number | null;
+  kyc_status: string;
 };
 
 export default function AgencyProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<AgencyProfile>({
-    legal_name: "", city: "", country: "", address: "", latitude: null, longitude: null,
+    legal_name: "", registration_number: "", city: "", country: "", address: "", latitude: null, longitude: null, kyc_status: "PENDING",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -128,19 +130,26 @@ export default function AgencyProfilePage() {
           </div>
         )}
 
-        <form onSubmit={handleSave} className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6 grid gap-5">
-          {/* Nom légal */}
-          <div>
-            <label className="block text-xs font-semibold uppercase text-slate-500 mb-2">
-              <Building2 className="inline h-3.5 w-3.5 mr-1" />Nom de l'entreprise
-            </label>
-            <input
-              value={profile.legal_name}
-              onChange={(e) => setProfile((p) => ({ ...p, legal_name: e.target.value }))}
-              className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              placeholder="Transport Dupont SARL"
-            />
+        {/* Infos validées par l'admin — lecture seule */}
+        {(profile.legal_name || profile.registration_number) && (
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 grid gap-4 mb-4">
+            <div className="text-xs font-semibold uppercase text-slate-400 tracking-widest mb-1">Informations vérifiées (non modifiables)</div>
+            {profile.legal_name && (
+              <div>
+                <div className="text-xs font-semibold uppercase text-slate-500 mb-1"><Building2 className="inline h-3.5 w-3.5 mr-1" />Raison sociale</div>
+                <div className="px-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm text-slate-700 font-medium">{profile.legal_name}</div>
+              </div>
+            )}
+            {profile.registration_number && (
+              <div>
+                <div className="text-xs font-semibold uppercase text-slate-500 mb-1">N° d'enregistrement (SIRET / RC)</div>
+                <div className="px-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm text-slate-700 font-mono">{profile.registration_number}</div>
+              </div>
+            )}
           </div>
+        )}
+
+        <form onSubmit={handleSave} className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6 grid gap-5">
 
           {/* Adresse */}
           <div>

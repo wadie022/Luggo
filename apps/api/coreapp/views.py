@@ -550,26 +550,7 @@ class AgencyKYBUploadView(APIView):
         kyb.document = doc_file
         kyb.save()
 
-        no_api_key = not os.getenv("ANTHROPIC_API_KEY")
-        result = {} if no_api_key else _verify_business_with_claude(doc_bytes, doc_mime)
         send_kyb_submitted(agency.user.email, agency.legal_name)
-
-        if no_api_key:
-            kyb.status = "PENDING"
-            kyb.rejection_reason = ""
-        elif result.get("is_valid_business"):
-            kyb.status = "VERIFIED"
-            kyb.extracted_data = result
-            kyb.verified_at = timezone.now()
-            agency.kyc_status = "VERIFIED"
-            agency.save(update_fields=["kyc_status"])
-        else:
-            kyb.status = "REJECTED"
-            kyb.rejection_reason = result.get("reason", "Document invalide ou illisible.")
-            agency.kyc_status = "REJECTED"
-            agency.save(update_fields=["kyc_status"])
-
-        kyb.save()
         return Response(AgencyDocumentSerializer(kyb).data, status=status.HTTP_200_OK)
 
 
@@ -799,35 +780,34 @@ class AgencyProfileView(APIView):
     """GET/PATCH /api/agency/profile/ — profil de l'agence connectée."""
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        agency = getattr(request.user, "agency", None)
-        if not agency:
-            return Response({"detail": "Aucune agence."}, status=404)
-        return Response({
+    def _serialize(self, agency):
+        return {
             "legal_name": agency.legal_name,
+            "registration_number": agency.registration_number,
             "city": agency.city,
             "country": agency.country,
             "address": agency.address or "",
             "latitude": agency.latitude,
             "longitude": agency.longitude,
-        })
+            "kyc_status": agency.kyc_status,
+        }
+
+    def get(self, request):
+        agency = getattr(request.user, "agency", None)
+        if not agency:
+            return Response({"detail": "Aucune agence."}, status=404)
+        return Response(self._serialize(agency))
 
     def patch(self, request):
         agency = getattr(request.user, "agency", None)
         if not agency:
             return Response({"detail": "Aucune agence."}, status=404)
-        for field in ["legal_name", "city", "country", "address", "latitude", "longitude"]:
+        # legal_name et registration_number sont gérés par l'admin via KYB — non modifiables ici
+        for field in ["city", "country", "address", "latitude", "longitude"]:
             if field in request.data:
                 setattr(agency, field, request.data[field])
         agency.save()
-        return Response({
-            "legal_name": agency.legal_name,
-            "city": agency.city,
-            "country": agency.country,
-            "address": agency.address or "",
-            "latitude": agency.latitude,
-            "longitude": agency.longitude,
-        })
+        return Response(self._serialize(agency))
 
 
 class AgencyTripsView(generics.ListAPIView):
