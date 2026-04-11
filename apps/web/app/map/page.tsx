@@ -7,22 +7,13 @@ import dynamic from "next/dynamic";
 import { API_BASE, getAccessToken, logout, getRole } from "@/lib/api";
 import { MapPin, ArrowLeft } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
+import type { AgencyPoint } from "@/components/MapView";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
-type AgencyRaw = {
-  id: number;
-  legal_name: string;
-  city: string;
-  country: string;
-  address: string;
-  latitude: number | null;
-  longitude: number | null;
-};
-
 export default function MapPage() {
   const router = useRouter();
-  const [agencies, setAgencies] = useState<AgencyRaw[]>([]);
+  const [points, setPoints] = useState<AgencyPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const role = typeof window === "undefined" ? null : getRole();
 
@@ -31,17 +22,18 @@ export default function MapPage() {
   useEffect(() => {
     const token = getAccessToken();
     if (!token) { router.replace("/login"); return; }
-    fetch(`${API_BASE}/agencies/`)
+    fetch(`${API_BASE}/agency-branches/`)
       .then((r) => r.json())
-      .then(setAgencies)
+      .then(setPoints)
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [router]);
 
-  const mappable = agencies.filter(
-    (a): a is AgencyRaw & { latitude: number; longitude: number } =>
-      a.latitude !== null && a.longitude !== null
-  );
+  // Agences distinctes pour la liste latérale
+  const agencyMap = new Map<number, AgencyPoint>();
+  for (const p of points) {
+    if (!agencyMap.has(p.agency_id) || p.is_main) agencyMap.set(p.agency_id, p);
+  }
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
@@ -74,29 +66,34 @@ export default function MapPage() {
           <div className="grid md:grid-cols-3 gap-6">
             {/* Map */}
             <div className="md:col-span-2 rounded-3xl overflow-hidden border border-slate-200 shadow-sm" style={{ height: 480 }}>
-              <MapView agencies={mappable} />
+              <MapView agencies={points} />
             </div>
 
-            {/* Liste */}
+            {/* Liste (une entrée par agence) */}
             <div className="flex flex-col gap-3 overflow-y-auto max-h-[480px] pr-1">
-              {agencies.length === 0 ? (
+              {agencyMap.size === 0 ? (
                 <p className="text-slate-400 text-sm">Aucune agence vérifiée pour le moment.</p>
-              ) : agencies.map((a: AgencyRaw) => (
-                <div key={a.id} className="rounded-2xl border border-slate-200 bg-white p-4 hover:border-blue-200 hover:shadow-sm transition">
-                  <div className="font-semibold text-slate-900 text-sm">{a.legal_name}</div>
-                  <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
-                    <MapPin className="h-3 w-3" />
-                    {a.city}, {a.country}
+              ) : Array.from(agencyMap.values()).map((a) => {
+                const branchCount = points.filter(p => p.agency_id === a.agency_id).length;
+                return (
+                  <div key={a.agency_id} className="rounded-2xl border border-slate-200 bg-white p-4 hover:border-blue-200 hover:shadow-sm transition">
+                    <div className="font-semibold text-slate-900 text-sm">{a.legal_name}</div>
+                    <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
+                      <MapPin className="h-3 w-3" />
+                      {a.city}, {a.country}
+                    </div>
+                    {branchCount > 1 && (
+                      <div className="text-xs text-blue-600 mt-0.5">{branchCount} adresses</div>
+                    )}
+                    <Link
+                      href={`/trips?origin_country=${a.country}`}
+                      className="mt-3 inline-block text-xs font-semibold text-blue-600 hover:text-blue-800"
+                    >
+                      Voir les trajets →
+                    </Link>
                   </div>
-                  {a.address && <div className="text-xs text-slate-400 mt-0.5">{a.address}</div>}
-                  <Link
-                    href={`/trips?origin_country=${a.country}`}
-                    className="mt-3 inline-block text-xs font-semibold text-blue-600 hover:text-blue-800"
-                  >
-                    Voir les trajets →
-                  </Link>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

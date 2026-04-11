@@ -7,18 +7,9 @@ import dynamic from "next/dynamic";
 import { API_BASE, getAccessToken, getRole, logout, fetchMe, authHeader } from "@/lib/api";
 import { MapPin, Package, Calendar, ArrowRight, Menu, X, LocateFixed } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
+import type { AgencyPoint } from "@/components/MapView";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
-
-type AgencyMap = {
-  id: number;
-  legal_name: string;
-  city: string;
-  country: string;
-  address: string;
-  latitude: number;
-  longitude: number;
-};
 
 type Trip = {
   id: number;
@@ -43,7 +34,7 @@ export default function TripsPage() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [username, setUsername] = useState<string>("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [agencies, setAgencies] = useState<AgencyMap[]>([]);
+  const [agencies, setAgencies] = useState<AgencyPoint[]>([]);
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [locating, setLocating] = useState(false);
 
@@ -88,9 +79,9 @@ export default function TripsPage() {
 
   useEffect(() => {
     fetchTrips();
-    fetch(`${API_BASE}/agencies/`)
+    fetch(`${API_BASE}/agency-branches/`)
       .then((r) => r.json())
-      .then((data) => setAgencies(data.filter((a: any) => a.latitude && a.longitude)))
+      .then(setAgencies)
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

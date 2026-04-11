@@ -13,7 +13,7 @@ from .views import (
     AgencyListView,
     AgencyTripsView, AgencyTripEditView, AgencyShipmentsView, AgencyShipmentStatusView, AgencyStatsView,
     AgencyProfileView, AgencyBranchView, AgencyBranchDetailView, ShipmentTrackingView,
-    ReviewView
+    ReviewView, PublicAgencyBranchesView
 )
 
 urlpatterns = [
@@ -33,6 +33,7 @@ urlpatterns = [
     path("notifications/read-all/", NotificationReadAllView.as_view(), name="notifications-read-all"),
 
     path("agencies/", AgencyListView.as_view(), name="agency-list"),
+    path("agency-branches/", PublicAgencyBranchesView.as_view(), name="public-agency-branches"),
     path("trips/", TripListView.as_view(), name="trip-list"),
     path("trips/<int:pk>/", TripDetailView.as_view(), name="trip-detail"),
 

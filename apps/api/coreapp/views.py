@@ -655,6 +655,65 @@ class AgencyListView(generics.ListAPIView):
         return Response(list(agencies))
 
 
+class PublicAgencyBranchesView(APIView):
+    """
+    GET /api/agency-branches/
+    Retourne tous les points de présence des agences vérifiées :
+    - Toutes les succursales (AgencyBranch) avec coordonnées
+    - En fallback : agences vérifiées avec coordonnées de profil mais sans succursales
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from .models import Agency as AgencyModel, AgencyBranch
+
+        points = []
+
+        # 1) Toutes les succursales avec coords
+        branches = (
+            AgencyBranch.objects
+            .filter(agency__kyc_status="VERIFIED", latitude__isnull=False, longitude__isnull=False)
+            .select_related("agency")
+        )
+        agency_ids_with_branches = set()
+        for b in branches:
+            agency_ids_with_branches.add(b.agency_id)
+            points.append({
+                "key": f"b{b.id}",
+                "legal_name": b.agency.legal_name,
+                "label": b.label,
+                "city": b.city,
+                "country": b.country,
+                "address": b.address,
+                "latitude": b.latitude,
+                "longitude": b.longitude,
+                "is_main": b.is_main,
+                "agency_id": b.agency_id,
+            })
+
+        # 2) Agences vérifiées avec coords de profil mais sans succursales
+        fallback = AgencyModel.objects.filter(
+            kyc_status="VERIFIED",
+            latitude__isnull=False,
+            longitude__isnull=False,
+        ).exclude(id__in=agency_ids_with_branches)
+        for a in fallback:
+            points.append({
+                "key": f"a{a.id}",
+                "legal_name": a.legal_name,
+                "label": a.legal_name,
+                "city": a.city,
+                "country": a.country,
+                "address": a.address,
+                "latitude": a.latitude,
+                "longitude": a.longitude,
+                "is_main": True,
+                "agency_id": a.id,
+            })
+
+        return Response(points)
+
+
 class AdminUsersView(APIView):
     """GET /api/admin/users/?role=CLIENT|AGENCY&search=&active= — liste des utilisateurs."""
     permission_classes = [IsAuthenticated]
