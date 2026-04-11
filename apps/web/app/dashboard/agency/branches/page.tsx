@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, authHeader, fetchMe, logout } from "@/lib/api";
 import { MapPin, Plus, Trash2, ArrowLeft, CheckCircle2, XCircle, Search, Star } from "lucide-react";

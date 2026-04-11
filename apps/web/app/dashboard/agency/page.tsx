@@ -138,10 +138,11 @@ function TopBar() {
 
   const navLinks = [
     { href: "/dashboard/agency/shipments", label: "Demandes" },
-    { href: "/dashboard/agency/branches", label: "Adresses" },
+    { href: "/dashboard/agency/branches", label: "Adresses & Carte" },
     { href: "/reclamations", label: "Réclamations" },
     { href: "/dashboard/agency/profile", label: "Profil" },
-    { href: "/dashboard/agency/kyb", label: "Carte" },
+    { href: "/map", label: "Carte" },
+    { href: "/dashboard/agency/kyb", label: "Vérification" },
   ];
 
   return (
@@ -612,13 +613,17 @@ export default function AgencyDashboardPage() {
           router.push("/trips");
           return;
         }
-        // Fetch agency profile to get kyc_status
-        const profileRes = await fetch(`${API_BASE}/agency/profile/`, {
-          headers: { "Content-Type": "application/json", ...authHeader() },
-        });
-        if (profileRes.ok) {
-          const profile = await profileRes.json().catch(() => ({}));
-          setKycStatus(profile.kyc_status ?? "PENDING");
+        // Fetch agency profile to get kyc_status (agency-level, not user-level)
+        try {
+          const profileRes = await fetch(`${API_BASE}/agency/profile/`, {
+            headers: authHeader(),
+          });
+          if (profileRes.ok) {
+            const profile = await profileRes.json().catch(() => ({}));
+            setKycStatus(profile.kyc_status ?? "PENDING");
+          }
+        } catch {
+          // fallback silencieux
         }
       } catch {
         router.push("/login");
