@@ -1,7 +1,7 @@
 # coreapp/serializers.py
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from .models import User, Trip, Shipment, Agency, KYCDocument, AgencyDocument, Notification, Reclamation
+from .models import User, Trip, Shipment, Agency, AgencyBranch, KYCDocument, AgencyDocument, Notification, Reclamation
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 
@@ -225,3 +225,10 @@ class ReclamationSerializer(serializers.ModelSerializer):
             return None
         t = obj.shipment.trip
         return f"{t.origin_city} ({t.origin_country}) → {t.dest_city} ({t.dest_country})"
+
+
+class AgencyBranchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AgencyBranch
+        fields = ("id", "label", "address", "city", "country", "latitude", "longitude", "is_main")
+        read_only_fields = ("id",)

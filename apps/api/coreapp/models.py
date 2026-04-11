@@ -35,6 +35,24 @@ class Agency(models.Model):
     def __str__(self):
         return f"{self.legal_name} [{self.country}-{self.city}]"
 
+
+class AgencyBranch(models.Model):
+    """Adresse/succursale d'une agence — une agence peut en avoir plusieurs."""
+    agency    = models.ForeignKey(Agency, on_delete=models.CASCADE, related_name="branches")
+    label     = models.CharField(max_length=120)          # ex: "Agence Paris", "Bureau Casablanca"
+    address   = models.CharField(max_length=255, blank=True)
+    city      = models.CharField(max_length=80)
+    country   = models.CharField(max_length=2)            # code ISO
+    latitude  = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    is_main   = models.BooleanField(default=False)        # adresse principale
+
+    class Meta:
+        ordering = ["-is_main", "city"]
+
+    def __str__(self):
+        return f"{self.agency.legal_name} — {self.label} ({self.city})"
+
 # -----------------------------------------
 # Catégorie douane (pour estimation pro)
 # -----------------------------------------

@@ -17,11 +17,11 @@ import mimetypes
 import re as _re
 from django.utils import timezone
 
-from .models import Trip, Shipment, KYCDocument, AgencyDocument, Notification, Reclamation
+from .models import Trip, Shipment, KYCDocument, AgencyDocument, Notification, Reclamation, AgencyBranch
 from .serializers import (
     RegisterSerializer, TripSerializer, ShipmentSerializer, MeSerializer,
     AgencyTripSerializer, AgencyShipmentSerializer, KYCDocumentSerializer,
-    AgencyDocumentSerializer, NotificationSerializer, ReclamationSerializer
+    AgencyDocumentSerializer, NotificationSerializer, ReclamationSerializer, AgencyBranchSerializer
 )
 from .permissions import IsAgency
 from .emails import (
@@ -808,6 +808,71 @@ class AgencyProfileView(APIView):
                 setattr(agency, field, request.data[field])
         agency.save()
         return Response(self._serialize(agency))
+
+
+class AgencyBranchView(APIView):
+    """
+    GET  /api/agency/branches/      — liste les adresses de l'agence
+    POST /api/agency/branches/      — ajouter une adresse
+    """
+    permission_classes = [IsAuthenticated, IsAgency]
+
+    def _agency(self, request):
+        return getattr(request.user, "agency", None)
+
+    def get(self, request):
+        agency = self._agency(request)
+        if not agency:
+            return Response({"detail": "Aucune agence."}, status=404)
+        branches = agency.branches.all()
+        return Response(AgencyBranchSerializer(branches, many=True).data)
+
+    def post(self, request):
+        agency = self._agency(request)
+        if not agency:
+            return Response({"detail": "Aucune agence."}, status=404)
+        ser = AgencyBranchSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        # Si is_main, retirer l'ancien principal
+        if ser.validated_data.get("is_main"):
+            agency.branches.filter(is_main=True).update(is_main=False)
+        ser.save(agency=agency)
+        return Response(ser.data, status=201)
+
+
+class AgencyBranchDetailView(APIView):
+    """
+    PATCH  /api/agency/branches/<id>/ — modifier
+    DELETE /api/agency/branches/<id>/ — supprimer
+    """
+    permission_classes = [IsAuthenticated, IsAgency]
+
+    def _get_branch(self, request, pk):
+        agency = getattr(request.user, "agency", None)
+        if not agency:
+            return None, Response({"detail": "Aucune agence."}, status=404)
+        try:
+            return agency.branches.get(pk=pk), None
+        except AgencyBranch.DoesNotExist:
+            return None, Response({"detail": "Adresse introuvable."}, status=404)
+
+    def patch(self, request, pk):
+        branch, err = self._get_branch(request, pk)
+        if err:
+            return err
+        ser = AgencyBranchSerializer(branch, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        if ser.validated_data.get("is_main"):
+            branch.agency.branches.filter(is_main=True).update(is_main=False)
+        ser.save()
+        return Response(ser.data)
+
+    def delete(self, request, pk):
+        branch, err = self._get_branch(request, pk)
+        if err:
+            return err
+        branch.delete()
+        return Response(status=204)
 
 
 class AgencyTripsView(generics.ListAPIView):
