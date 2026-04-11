@@ -195,6 +195,22 @@ class Reclamation(models.Model):
 # -----------------------------------------
 # Paiement lié à un Shipment
 # -----------------------------------------
+class Review(models.Model):
+    reviewer      = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews_written')
+    agency        = models.ForeignKey(Agency, null=True, blank=True, on_delete=models.SET_NULL, related_name='reviews')
+    reviewed_user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='reviews_received')
+    shipment      = models.ForeignKey('Shipment', null=True, blank=True, on_delete=models.SET_NULL, related_name='reviews')
+    rating        = models.IntegerField()  # 1-5
+    comment       = models.TextField(blank=True)
+    created_at    = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Review #{self.id} — {self.reviewer.username} ({self.rating}★)"
+
+
 class Payment(models.Model):
     shipment = models.OneToOneField(Shipment, on_delete=models.CASCADE)  # 1 paiement ↔ 1 envoi
     amount_total_cents = models.IntegerField()       # montant total en centimes

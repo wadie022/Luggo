@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, authHeader, fetchMe, logout } from "@/lib/api";
-import { ArrowLeft, Camera, Mail, User, MapPin, Calendar, CreditCard, ShieldCheck, ShieldX, Clock } from "lucide-react";
+import { ArrowLeft, Camera, Mail, User, MapPin, Calendar, CreditCard, ShieldCheck, ShieldX, Clock, Star } from "lucide-react";
 
 type Me = {
   id: number;
@@ -15,6 +15,15 @@ type Me = {
   role: string;
   kyc_status: string;
   avatar_url: string | null;
+};
+
+type Review = {
+  id: number;
+  reviewer_username: string;
+  agency_name: string;
+  rating: number;
+  comment: string;
+  created_at: string;
 };
 
 type KYCData = {
@@ -60,6 +69,7 @@ export default function ProfilePage() {
   const [lastName, setLastName]     = useState("");
   const [saving, setSaving]         = useState(false);
   const [saveMsg, setSaveMsg]       = useState<string | null>(null);
+  const [reviewsReceived, setReviewsReceived] = useState<Review[]>([]);
 
   function handleLogout() { logout(); router.replace("/login"); }
 
@@ -80,9 +90,12 @@ export default function ProfilePage() {
         setKyc(data);
       } catch {
         setKyc({ status: "PENDING" });
-      } finally {
-        setLoading(false);
       }
+      try {
+        const r = await fetch(`${API_BASE}/reviews/`, { headers: authHeader() });
+        if (r.ok) setReviewsReceived(await r.json());
+      } catch {}
+      setLoading(false);
     }
     boot();
   }, [router]);
@@ -247,7 +260,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Liens rapides */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 mb-8">
           <Link href="/profile/kyc" className="rounded-2xl border border-slate-200 bg-white p-4 hover:bg-slate-50 transition">
             <ShieldCheck className="h-5 w-5 text-blue-600 mb-2" />
             <div className="font-semibold text-sm">Vérification KYC</div>
@@ -260,6 +273,48 @@ export default function ProfilePage() {
             <div className="font-semibold text-sm">Mes colis</div>
             <div className="text-xs text-slate-500 mt-0.5">Suivi de tes envois</div>
           </Link>
+        </div>
+
+        {/* Avis reçus des agences */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="text-xs font-semibold tracking-widest text-blue-600 uppercase mb-1">Ma réputation</div>
+              <h2 className="text-xl font-extrabold">Avis des agences</h2>
+            </div>
+            {reviewsReceived.length > 0 && (
+              <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200">
+                <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                <span className="font-bold text-amber-700">
+                  {(reviewsReceived.reduce((s, r) => s + r.rating, 0) / reviewsReceived.length).toFixed(1)}
+                </span>
+                <span className="text-xs text-amber-600 ml-0.5">/ 5</span>
+              </div>
+            )}
+          </div>
+          {reviewsReceived.length === 0 ? (
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center">
+              <Star className="mx-auto h-8 w-8 text-slate-300 mb-2" />
+              <p className="text-slate-500 text-sm">Aucun avis reçu pour le moment.</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {reviewsReceived.map((r) => (
+                <div key={r.id} className="rounded-3xl border border-slate-200 bg-white p-5">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="font-semibold text-slate-800 text-sm">{r.agency_name || r.reviewer_username}</div>
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5].map((s) => (
+                        <Star key={s} className={`h-4 w-4 ${s <= r.rating ? "text-amber-400 fill-amber-400" : "text-slate-200 fill-slate-200"}`} />
+                      ))}
+                    </div>
+                  </div>
+                  {r.comment && <p className="text-sm text-slate-600">{r.comment}</p>}
+                  <div className="text-xs text-slate-400 mt-2">{new Date(r.created_at).toLocaleDateString("fr-FR")}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </main>

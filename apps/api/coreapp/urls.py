@@ -12,7 +12,8 @@ from .views import (
     NotificationListView, NotificationUnreadCountView, NotificationReadView, NotificationReadAllView,
     AgencyListView,
     AgencyTripsView, AgencyTripEditView, AgencyShipmentsView, AgencyShipmentStatusView, AgencyStatsView,
-    AgencyProfileView, AgencyBranchView, AgencyBranchDetailView, ShipmentTrackingView
+    AgencyProfileView, AgencyBranchView, AgencyBranchDetailView, ShipmentTrackingView,
+    ReviewView
 )
 
 urlpatterns = [
@@ -69,4 +70,6 @@ urlpatterns = [
     path("agency/profile/", AgencyProfileView.as_view(), name="agency-profile"),
     path("agency/branches/", AgencyBranchView.as_view(), name="agency-branches"),
     path("agency/branches/<int:pk>/", AgencyBranchDetailView.as_view(), name="agency-branch-detail"),
+
+    path("reviews/", ReviewView.as_view(), name="reviews"),
 ]

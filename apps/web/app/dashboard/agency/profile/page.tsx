@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, authHeader, fetchMe, logout } from "@/lib/api";
-import { Building2, MapPin, Search, Save, ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
+import { Building2, MapPin, Search, Save, ArrowLeft, CheckCircle2, XCircle, Star } from "lucide-react";
 
 type AgencyProfile = {
   legal_name: string;
@@ -17,6 +17,14 @@ type AgencyProfile = {
   kyc_status: string;
 };
 
+type Review = {
+  id: number;
+  reviewer_username: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+};
+
 export default function AgencyProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<AgencyProfile>({
@@ -27,6 +35,7 @@ export default function AgencyProfilePage() {
   const [geocoding, setGeocoding] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
 
   function handleLogout() { logout(); router.replace("/login"); }
 
@@ -37,11 +46,13 @@ export default function AgencyProfilePage() {
         if (me.role !== "AGENCY") { router.replace("/trips"); return; }
       } catch { router.replace("/login"); return; }
 
-      fetch(`${API_BASE}/agency/profile/`, { headers: authHeader() })
-        .then((r) => r.json())
-        .then(setProfile)
-        .catch(() => {})
-        .finally(() => setLoading(false));
+      await Promise.all([
+        fetch(`${API_BASE}/agency/profile/`, { headers: authHeader() })
+          .then((r) => r.json()).then(setProfile).catch(() => {}),
+        fetch(`${API_BASE}/reviews/`, { headers: authHeader() })
+          .then((r) => r.json()).then(setReviews).catch(() => {}),
+      ]);
+      setLoading(false);
     }
     boot();
   }, [router]);
@@ -215,6 +226,49 @@ export default function AgencyProfilePage() {
             {saving ? "Sauvegarde…" : "Enregistrer"}
           </button>
         </form>
+
+        {/* Avis reçus */}
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="text-xs font-semibold tracking-widest text-blue-600 uppercase mb-1">Réputation</div>
+              <h2 className="text-xl font-extrabold">Avis clients</h2>
+            </div>
+            {reviews.length > 0 && (
+              <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200">
+                <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                <span className="font-bold text-amber-700">
+                  {(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)}
+                </span>
+                <span className="text-xs text-amber-600 ml-0.5">/ 5</span>
+              </div>
+            )}
+          </div>
+
+          {reviews.length === 0 ? (
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center">
+              <Star className="mx-auto h-8 w-8 text-slate-300 mb-2" />
+              <p className="text-slate-500 text-sm">Aucun avis reçu pour le moment.</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {reviews.map((r) => (
+                <div key={r.id} className="rounded-3xl border border-slate-200 bg-white p-5">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="font-semibold text-slate-800 text-sm">{r.reviewer_username}</div>
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5].map((s) => (
+                        <Star key={s} className={`h-4 w-4 ${s <= r.rating ? "text-amber-400 fill-amber-400" : "text-slate-200 fill-slate-200"}`} />
+                      ))}
+                    </div>
+                  </div>
+                  {r.comment && <p className="text-sm text-slate-600">{r.comment}</p>}
+                  <div className="text-xs text-slate-400 mt-2">{new Date(r.created_at).toLocaleDateString("fr-FR")}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </main>
   );

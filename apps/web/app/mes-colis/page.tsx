@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, authHeader, fetchMe, logout, getRole } from "@/lib/api";
-import { Package, MapPin, ArrowRight, Clock, CheckCircle2, XCircle, Truck, Home, Building2, Search } from "lucide-react";
+import { Package, MapPin, ArrowRight, Clock, CheckCircle2, XCircle, Truck, Home, Building2, Search, Star } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 
 type TripDetail = {
@@ -17,6 +17,7 @@ type TripDetail = {
   arrival_eta: string | null;
   price_per_kg: number;
   agency_name: string;
+  agency_id: number | null;
 };
 
 type Shipment = {
@@ -227,6 +228,25 @@ function ShipmentCard({ sh, onConfirmDeposit, actionLoading }: {
   const t = sh.trip_detail;
   const currentIdx = STATUS_ORDER.indexOf(sh.status);
   const isRejected = sh.status === "REJECTED";
+  const [showReview, setShowReview] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewSent, setReviewSent] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
+
+  async function submitReview() {
+    setReviewLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/reviews/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeader() },
+        body: JSON.stringify({ agency: t.agency_id, shipment: sh.id, rating: reviewRating, comment: reviewComment }),
+      });
+      if (res.ok) { setReviewSent(true); setShowReview(false); }
+    } finally {
+      setReviewLoading(false);
+    }
+  }
 
   return (
     <article className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -313,8 +333,60 @@ function ShipmentCard({ sh, onConfirmDeposit, actionLoading }: {
               {actionLoading ? "Confirmation…" : "Confirmer dépôt"}
             </button>
           )}
+          {sh.status === "DELIVERED" && !reviewSent && (
+            <button
+              onClick={() => setShowReview(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 text-sm font-semibold transition"
+            >
+              <Star className="h-4 w-4" />
+              Laisser un avis
+            </button>
+          )}
+          {reviewSent && (
+            <div className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+              <CheckCircle2 className="h-4 w-4" /> Avis envoyé
+            </div>
+          )}
         </div>
       </div>
+
+      {showReview && (
+        <div className="border-t border-slate-100 p-5 bg-amber-50/40">
+          <div className="font-semibold text-sm mb-3 flex items-center gap-2">
+            <Star className="h-4 w-4 text-amber-500" />
+            Votre avis pour {t.agency_name}
+          </div>
+          <div className="flex gap-1 mb-3">
+            {[1,2,3,4,5].map((s) => (
+              <button key={s} type="button" onClick={() => setReviewRating(s)}>
+                <Star className={`h-6 w-6 transition ${s <= reviewRating ? "text-amber-400 fill-amber-400" : "text-slate-300 fill-slate-300"}`} />
+              </button>
+            ))}
+          </div>
+          <textarea
+            value={reviewComment}
+            onChange={(e) => setReviewComment(e.target.value)}
+            placeholder="Partagez votre expérience (optionnel)…"
+            rows={3}
+            className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 mb-3 resize-none"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={submitReview}
+              disabled={reviewLoading}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white text-sm font-semibold"
+            >
+              {reviewLoading ? "Envoi…" : "Envoyer"}
+            </button>
+            <button
+              onClick={() => setShowReview(false)}
+              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
     </article>
   );
 }

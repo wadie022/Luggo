@@ -1,7 +1,7 @@
 # coreapp/serializers.py
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from .models import User, Trip, Shipment, Agency, AgencyBranch, KYCDocument, AgencyDocument, Notification, Reclamation
+from .models import User, Trip, Shipment, Agency, AgencyBranch, KYCDocument, AgencyDocument, Notification, Reclamation, Review
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 
@@ -148,6 +148,7 @@ class ShipmentSerializer(serializers.ModelSerializer):
             "arrival_eta": t.arrival_eta,
             "price_per_kg": t.price_per_kg,
             "agency_name": t.agency.legal_name if t.agency else "",
+            "agency_id": t.agency.id if t.agency else None,
         }
 
 
@@ -172,6 +173,7 @@ class AgencyTripSerializer(serializers.ModelSerializer):
 # ✅ Agence: Shipments détaillés
 class AgencyShipmentSerializer(serializers.ModelSerializer):
     trip_summary = serializers.SerializerMethodField()
+    user_id = serializers.IntegerField(source='user.id', read_only=True, default=None)
 
     class Meta:
         model = Shipment
@@ -179,6 +181,7 @@ class AgencyShipmentSerializer(serializers.ModelSerializer):
             "id",
             "trip",
             "trip_summary",
+            "user_id",
             "customer_name",
             "customer_email",
             "customer_phone",
@@ -232,3 +235,13 @@ class AgencyBranchSerializer(serializers.ModelSerializer):
         model = AgencyBranch
         fields = ("id", "label", "address", "city", "country", "latitude", "longitude", "is_main")
         read_only_fields = ("id",)
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    reviewer_username = serializers.CharField(source='reviewer.username', read_only=True)
+    agency_name = serializers.CharField(source='agency.legal_name', read_only=True)
+
+    class Meta:
+        model = Review
+        fields = ("id", "reviewer_username", "agency", "agency_name", "reviewed_user", "shipment", "rating", "comment", "created_at")
+        read_only_fields = ("id", "reviewer_username", "agency_name", "created_at")

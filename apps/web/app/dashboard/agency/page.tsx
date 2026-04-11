@@ -18,6 +18,8 @@ import {
   CreditCard,
   Menu,
   X,
+  Star,
+  CheckCircle2,
 } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 
@@ -48,6 +50,7 @@ type Shipment = {
     capacity_kg: number;
     departure_at: string;
   };
+  user_id: number | null;
   customer_name: string;
   customer_email: string;
   customer_phone: string;
@@ -225,6 +228,25 @@ function ShipmentCard({
 }) {
   const [updating, setUpdating] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [showReview, setShowReview] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewSent, setReviewSent] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
+
+  async function submitReview() {
+    setReviewLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/reviews/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeader() },
+        body: JSON.stringify({ reviewed_user: shipment.user_id, shipment: shipment.id, rating: reviewRating, comment: reviewComment }),
+      });
+      if (res.ok) { setReviewSent(true); setShowReview(false); }
+    } finally {
+      setReviewLoading(false);
+    }
+  }
 
   async function changeStatus(newStatus: string) {
     setUpdating(true);
@@ -385,6 +407,56 @@ function ShipmentCard({
               ✅ Confirmer livraison
             </button>
           )}
+        </div>
+      )}
+
+      {/* Review button for DELIVERED shipments */}
+      {shipment.status === "DELIVERED" && shipment.user_id && !reviewSent && (
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <button
+            onClick={() => setShowReview(!showReview)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 text-sm font-semibold"
+          >
+            <Star className="h-4 w-4" />
+            Évaluer ce client
+          </button>
+        </div>
+      )}
+      {shipment.status === "DELIVERED" && reviewSent && (
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <div className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+            <CheckCircle2 className="h-4 w-4" /> Avis envoyé
+          </div>
+        </div>
+      )}
+
+      {showReview && (
+        <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
+          <div className="font-semibold text-sm mb-2">Avis pour {shipment.customer_name}</div>
+          <div className="flex gap-1 mb-3">
+            {[1,2,3,4,5].map((s) => (
+              <button key={s} type="button" onClick={() => setReviewRating(s)}>
+                <Star className={`h-6 w-6 transition ${s <= reviewRating ? "text-amber-400 fill-amber-400" : "text-slate-300 fill-slate-300"}`} />
+              </button>
+            ))}
+          </div>
+          <textarea
+            value={reviewComment}
+            onChange={(e) => setReviewComment(e.target.value)}
+            placeholder="Commentaire (optionnel)…"
+            rows={2}
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 mb-2 resize-none"
+          />
+          <div className="flex gap-2">
+            <button onClick={submitReview} disabled={reviewLoading}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white text-sm font-semibold">
+              {reviewLoading ? "Envoi…" : "Envoyer"}
+            </button>
+            <button onClick={() => setShowReview(false)}
+              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50">
+              Annuler
+            </button>
+          </div>
         </div>
       )}
 

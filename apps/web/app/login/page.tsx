@@ -47,8 +47,7 @@ export default function LoginPage() {
       if (me.role === "ADMIN") {
         router.push("/dashboard/admin");
       } else if (me.role === "AGENCY") {
-        if (me.kyc_status !== "VERIFIED") router.push("/dashboard/agency/kyb");
-        else router.push("/dashboard/agency");
+        router.push("/dashboard/agency");
       } else {
         // CLIENT
         if (me.kyc_status !== "VERIFIED") router.push("/profile/kyc");

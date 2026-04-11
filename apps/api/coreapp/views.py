@@ -17,11 +17,12 @@ import mimetypes
 import re as _re
 from django.utils import timezone
 
-from .models import Trip, Shipment, KYCDocument, AgencyDocument, Notification, Reclamation, AgencyBranch
+from .models import Trip, Shipment, KYCDocument, AgencyDocument, Notification, Reclamation, AgencyBranch, Review
 from .serializers import (
     RegisterSerializer, TripSerializer, ShipmentSerializer, MeSerializer,
     AgencyTripSerializer, AgencyShipmentSerializer, KYCDocumentSerializer,
-    AgencyDocumentSerializer, NotificationSerializer, ReclamationSerializer, AgencyBranchSerializer
+    AgencyDocumentSerializer, NotificationSerializer, ReclamationSerializer, AgencyBranchSerializer,
+    ReviewSerializer
 )
 from .permissions import IsAgency
 from .emails import (
@@ -1203,3 +1204,46 @@ class AgencyStatsView(APIView):
                 "kg": {"used": used_kg, "pending": pending_kg},
             }
         )
+
+
+# ============================
+# ⭐ AVIS / REVIEWS
+# ============================
+
+class ReviewView(APIView):
+    """
+    GET  /reviews/?agency=<id>  → avis sur une agence
+    GET  /reviews/?user=<id>    → avis reçus sur un client
+    GET  /reviews/              → avis reçus pour l'utilisateur connecté
+    POST /reviews/              → soumettre un avis
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        agency_id = request.query_params.get("agency")
+        user_id   = request.query_params.get("user")
+        if agency_id:
+            reviews = Review.objects.filter(agency_id=agency_id)
+        elif user_id:
+            reviews = Review.objects.filter(reviewed_user_id=user_id)
+        else:
+            if request.user.role == "AGENCY":
+                agency = getattr(request.user, "agency", None)
+                reviews = Review.objects.filter(agency=agency) if agency else Review.objects.none()
+            else:
+                reviews = Review.objects.filter(reviewed_user=request.user)
+        return Response(ReviewSerializer(reviews, many=True).data)
+
+    def post(self, request):
+        # Prevent duplicate: same reviewer + same agency (or same reviewed_user)
+        agency_id = request.data.get("agency")
+        reviewed_user_id = request.data.get("reviewed_user")
+        if agency_id and Review.objects.filter(reviewer=request.user, agency_id=agency_id).exists():
+            return Response({"detail": "Vous avez déjà laissé un avis pour cette agence."}, status=status.HTTP_400_BAD_REQUEST)
+        if reviewed_user_id and Review.objects.filter(reviewer=request.user, reviewed_user_id=reviewed_user_id).exists():
+            return Response({"detail": "Vous avez déjà laissé un avis pour ce client."}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = ReviewSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(reviewer=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
