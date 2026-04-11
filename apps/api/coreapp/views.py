@@ -575,9 +575,14 @@ class ReclamationView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         rec = serializer.save(user=self.request.user)
-        # Notif in-app
+        # Notif client
         notify(self.request.user, "Réclamation reçue 📋",
                "Nous avons bien reçu ta réclamation. Notre équipe te répondra sous 48h.", "/reclamations")
+        # Notif admins
+        admins = User.objects.filter(role="ADMIN")
+        for admin in admins:
+            notify(admin, f"Nouvelle réclamation #{rec.id}",
+                   f"De {self.request.user.username} : {rec.subject}", "/dashboard/admin")
 
 
 class AdminReclamationsView(generics.ListAPIView):
