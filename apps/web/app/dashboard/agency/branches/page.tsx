@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, authHeader, fetchMe, logout } from "@/lib/api";
-import { MapPin, Plus, Trash2, ArrowLeft, CheckCircle2, XCircle, Search, Star } from "lucide-react";
+import { MapPin, Plus, Trash2, ArrowLeft, CheckCircle2, XCircle, Star } from "lucide-react";
 import dynamic from "next/dynamic";
 
 const BranchMap = dynamic(() => import("@/components/BranchMap"), { ssr: false });
@@ -72,6 +72,10 @@ export default function AgencyBranchesPage() {
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true); setSuccessMsg(null); setErrorMsg(null);
+    // Géolocalisation automatique si pas encore de coordonnées
+    if (!form.latitude || !form.longitude) {
+      await handleGeocode();
+    }
     try {
       const res = await fetch(`${API_BASE}/agency/branches/`, {
         method: "POST",
@@ -186,18 +190,11 @@ export default function AgencyBranchesPage() {
                 className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
 
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={handleGeocode} disabled={geocoding}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-semibold disabled:opacity-60">
-                <Search className="h-4 w-4" />
-                {geocoding ? "Recherche…" : "Géolocaliser"}
-              </button>
-              {form.latitude && form.longitude && (
-                <span className="text-xs text-emerald-600 font-semibold">
-                  {form.latitude.toFixed(4)}, {form.longitude.toFixed(4)} ✓
-                </span>
-              )}
-            </div>
+            {form.latitude && form.longitude && (
+              <div className="text-xs text-emerald-600 font-semibold">
+                📍 {form.latitude.toFixed(4)}, {form.longitude.toFixed(4)} ✓
+              </div>
+            )}
 
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={form.is_main} onChange={e => setForm(f => ({ ...f, is_main: e.target.checked }))}
