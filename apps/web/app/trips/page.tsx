@@ -116,6 +116,7 @@ export default function TripsPage() {
             <Link href="/trips" className="text-white font-semibold">Trajets</Link>
             <Link href="/mes-colis" className="hover:text-white">Mes colis</Link>
             <Link href="/map" className="hover:text-white">Carte</Link>
+            <Link href="/reclamations" className="hover:text-white">Réclamations</Link>
           </nav>
 
           {/* Mobile menu dropdown */}
@@ -124,6 +125,7 @@ export default function TripsPage() {
               <Link href="/trips" onClick={() => setMenuOpen(false)} className="text-white font-semibold py-2">Trajets</Link>
               <Link href="/mes-colis" onClick={() => setMenuOpen(false)} className="text-slate-200 py-2">Mes colis</Link>
               <Link href="/map" onClick={() => setMenuOpen(false)} className="text-slate-200 py-2">Carte des agences</Link>
+              <Link href="/reclamations" onClick={() => setMenuOpen(false)} className="text-slate-200 py-2">Réclamations</Link>
               <Link href="/profile" onClick={() => setMenuOpen(false)} className="text-slate-200 py-2">Mon profil</Link>
               {role === "AGENCY" && <Link href="/dashboard/agency" onClick={() => setMenuOpen(false)} className="text-emerald-300 py-2">Dashboard agence</Link>}
               <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="text-left text-red-400 py-2">Déconnexion</button>

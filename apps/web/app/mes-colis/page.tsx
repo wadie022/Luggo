@@ -145,6 +145,7 @@ export default function MesColisPage() {
           </Link>
           <div className="flex items-center gap-2">
             <Link href="/trips" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">Trajets</Link>
+            <Link href="/reclamations" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">Réclamations</Link>
             <NotificationBell />
             <button onClick={handleLogout} className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">Déconnexion</button>
           </div>

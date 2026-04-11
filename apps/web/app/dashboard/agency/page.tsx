@@ -245,6 +245,9 @@ function TopBar() {
           <Link href="/dashboard/agency/shipments" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
             Demandes
           </Link>
+          <Link href="/reclamations" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
+            Réclamations
+          </Link>
           <Link href="/dashboard/agency/kyb" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-emerald-300 hover:bg-slate-800">
             Vérification
           </Link>
