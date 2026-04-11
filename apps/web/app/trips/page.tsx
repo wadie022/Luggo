@@ -225,7 +225,7 @@ export default function TripsPage() {
           </button>
         </div>
         <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-sm" style={{ height: 360 }}>
-          <MapView agencies={agencies} userLocation={userPos} />
+          <MapView agencies={agencies} userLocation={userPos} showContact={role !== "AGENCY"} />
         </div>
         {agencies.length === 0 && (
           <p className="text-slate-400 text-sm mt-3 text-center">Aucune agence avec coordonnées pour le moment.</p>

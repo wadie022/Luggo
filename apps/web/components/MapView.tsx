@@ -74,9 +74,11 @@ function RecenterMap({ points, userLocation }: { points: AgencyPoint[]; userLoca
 export default function MapView({
   agencies,
   userLocation = null,
+  showContact = false,
 }: {
   agencies: AgencyPoint[];
   userLocation?: [number, number] | null;
+  showContact?: boolean;
 }) {
   const center: [number, number] =
     userLocation ?? (agencies.length > 0 ? [agencies[0].latitude, agencies[0].longitude] : [46.2276, 2.2137]);
@@ -120,6 +122,14 @@ export default function MapView({
             )}
             <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{p.city}, {p.country}</div>
             {p.address && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{p.address}</div>}
+            {showContact && (
+              <a
+                href={`/messages?agency=${p.agency_id}&name=${encodeURIComponent(p.legal_name)}`}
+                style={{ display: "inline-block", marginTop: 8, fontSize: 12, fontWeight: 700, color: "#2563eb", textDecoration: "none" }}
+              >
+                Contacter →
+              </a>
+            )}
           </Popup>
         </Marker>
       ))}

@@ -66,7 +66,7 @@ export default function MapPage() {
           <div className="grid md:grid-cols-3 gap-6">
             {/* Map */}
             <div className="md:col-span-2 rounded-3xl overflow-hidden border border-slate-200 shadow-sm" style={{ height: 480 }}>
-              <MapView agencies={points} />
+              <MapView agencies={points} showContact={role !== "AGENCY"} />
             </div>
 
             {/* Liste (une entrée par agence) */}
@@ -85,12 +85,22 @@ export default function MapPage() {
                     {branchCount > 1 && (
                       <div className="text-xs text-blue-600 mt-0.5">{branchCount} adresses</div>
                     )}
-                    <Link
-                      href={`/trips?origin_country=${a.country}`}
-                      className="mt-3 inline-block text-xs font-semibold text-blue-600 hover:text-blue-800"
-                    >
-                      Voir les trajets →
-                    </Link>
+                    <div className="mt-3 flex gap-2">
+                      <Link
+                        href={`/trips?origin_country=${a.country}`}
+                        className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                      >
+                        Voir les trajets →
+                      </Link>
+                      {role !== "AGENCY" && (
+                        <Link
+                          href={`/messages?agency=${a.agency_id}&name=${encodeURIComponent(a.legal_name)}`}
+                          className="text-xs font-semibold text-emerald-600 hover:text-emerald-800"
+                        >
+                          Contacter →
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 );
               })}
