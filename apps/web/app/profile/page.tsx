@@ -95,7 +95,7 @@ export default function ProfilePage() {
       const res = await fetch(`${API_BASE}/me/`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...authHeader() },
-        body: JSON.stringify({ first_name: firstName, last_name: lastName }),
+        body: JSON.stringify({ email: me?.email }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -206,52 +206,9 @@ export default function ProfilePage() {
         <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-bold text-slate-900 text-lg">Informations personnelles</h2>
-            <button
-              onClick={() => { setEditMode(!editMode); setSaveMsg(null); }}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700"
-            >
-              {editMode ? "Annuler" : "Modifier"}
-            </button>
           </div>
 
-          {editMode ? (
-            <form onSubmit={handleSaveProfile} className="grid gap-3 mb-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Prénom</label>
-                <input
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="Prénom"
-                  className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Nom</label>
-                <input
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Nom de famille"
-                  className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              {saveMsg && (
-                <p className={`text-xs font-semibold ${saveMsg.includes("Erreur") ? "text-red-600" : "text-emerald-600"}`}>
-                  {saveMsg}
-                </p>
-              )}
-              <button
-                type="submit"
-                disabled={saving}
-                className="w-full py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold"
-              >
-                {saving ? "Enregistrement…" : "Enregistrer"}
-              </button>
-            </form>
-          ) : (
-            <>
-              {saveMsg && <p className="text-xs font-semibold text-emerald-600 mb-3">{saveMsg}</p>}
-            </>
-          )}
+          {saveMsg && <p className="text-xs font-semibold text-emerald-600 mb-3">{saveMsg}</p>}
 
           <div className="grid gap-4">
             <InfoRow icon={<User className="h-4 w-4" />} label="Nom d'utilisateur" value={me?.username ?? "—"} />

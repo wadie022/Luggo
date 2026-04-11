@@ -193,7 +193,7 @@ class MeView(APIView):
         return Response(MeSerializer(request.user, context={"request": request}).data)
 
     def patch(self, request):
-        allowed = {"first_name", "last_name", "email"}
+        allowed = {"email"}
         data = {k: v for k, v in request.data.items() if k in allowed}
         ser = MeSerializer(request.user, data=data, partial=True, context={"request": request})
         ser.is_valid(raise_exception=True)
