@@ -7,18 +7,105 @@ FROM_EMAIL  = "Luggo <onboarding@resend.dev>"
 SITE_URL    = os.getenv("SITE_URL", "https://luggo.vercel.app")
 
 
-def _send(to: list[str], subject: str, html: str):
+def _generate_recap_pdf(data: dict) -> bytes:
+    """Génère un PDF récapitulatif de colis avec reportlab."""
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4,
+                            rightMargin=2*cm, leftMargin=2*cm,
+                            topMargin=2*cm, bottomMargin=2*cm)
+    styles = getSampleStyleSheet()
+
+    h1 = ParagraphStyle('h1', parent=styles['Normal'], fontSize=22, fontName='Helvetica-Bold',
+                        textColor=colors.HexColor('#0f172a'), spaceAfter=4)
+    sub = ParagraphStyle('sub', parent=styles['Normal'], fontSize=11,
+                         textColor=colors.HexColor('#64748b'), spaceAfter=20)
+    foot = ParagraphStyle('foot', parent=styles['Normal'], fontSize=9,
+                          textColor=colors.HexColor('#94a3b8'), alignment=TA_CENTER)
+
+    blue = colors.HexColor('#2563eb')
+    grey = colors.HexColor('#64748b')
+    dark = colors.HexColor('#0f172a')
+    line = colors.HexColor('#e2e8f0')
+    bg1  = colors.HexColor('#f8fafc')
+
+    estimated = float(data.get('weight_kg', 0)) * float(data.get('price_per_kg', 0))
+    delivery_label = ('Livraison à domicile' if data.get('delivery_type') == 'HOME_DELIVERY'
+                      else 'Retrait au bureau')
+
+    rows = [
+        ['N° colis',           f"#{data.get('id', '—')}"],
+        ['Trajet',             data.get('route', '—')],
+        ['Client',             data.get('customer_name', '—')],
+        ['Email',              data.get('customer_email', '—')],
+        ['Téléphone',          data.get('customer_phone', '—') or '—'],
+        ['Poids',              f"{data.get('weight_kg', 0)} kg"],
+        ['Description',        data.get('description', '—') or '—'],
+        ['Tarif',              f"{data.get('price_per_kg', 0)} €/kg"],
+        ['Montant estimé',     f"{estimated:.2f} €"],
+        ['Mode de réception',  delivery_label],
+    ]
+    if data.get('delivery_address'):
+        rows.append(['Adresse livraison', data['delivery_address']])
+    rows += [
+        ['Statut',             data.get('status_label', 'En attente')],
+        ['Date',               data.get('created_at', '—')],
+    ]
+
+    table = Table(rows, colWidths=[4.5*cm, 11.5*cm])
+    table.setStyle(TableStyle([
+        ('FONTNAME',     (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME',     (1, 0), (1, -1), 'Helvetica'),
+        ('FONTSIZE',     (0, 0), (-1, -1), 10),
+        ('TEXTCOLOR',    (0, 0), (0, -1), grey),
+        ('TEXTCOLOR',    (1, 0), (1, -1), dark),
+        ('ROWBACKGROUNDS', (0, 0), (-1, -1), [bg1, colors.white]),
+        ('TOPPADDING',   (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING',(0, 0), (-1, -1), 8),
+        ('LEFTPADDING',  (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('GRID',         (0, 0), (-1, -1), 0.5, line),
+    ]))
+
+    story = [
+        Paragraph("LUGGO", h1),
+        Paragraph(f"Récapitulatif de votre colis #{data.get('id', '')}", sub),
+        HRFlowable(width="100%", thickness=1, color=line),
+        Spacer(1, 0.5*cm),
+        table,
+        Spacer(1, 0.8*cm),
+        HRFlowable(width="100%", thickness=1, color=line),
+        Spacer(1, 0.2*cm),
+        Paragraph("© Luggo.ma — Transport Europe ↔ Maroc", foot),
+    ]
+
+    doc.build(story)
+    buf.seek(0)
+    return buf.read()
+
+
+def _send(to: list[str], subject: str, html: str, attachments: list | None = None):
     api_key = os.getenv("RESEND_API_KEY")
     if not api_key:
-        return  # pas de clé = on ignore silencieusement
+        return
     resend.api_key = api_key
     try:
-        resend.Emails.send({
+        params: dict = {
             "from": FROM_EMAIL,
             "to": to,
             "subject": subject,
             "html": html,
-        })
+        }
+        if attachments:
+            params["attachments"] = attachments
+        resend.Emails.send(params)
     except Exception:
         pass  # ne jamais planter l'API à cause d'un email
 
@@ -138,25 +225,47 @@ def send_kyb_rejected(email: str, agency_name: str, reason: str):
 
 # ─── Shipments ─────────────────────────────────────────────────────────────────
 
-def send_shipment_created(customer_email: str, customer_name: str, trip_route: str, shipment_id: int):
+def send_shipment_created(customer_email: str, customer_name: str, trip_route: str,
+                          shipment_id: int, shipment_data: dict | None = None):
     body = f"""
     <p style="color:#475569;margin:0 0 16px">Bonjour <strong>{customer_name}</strong>,</p>
     <p style="color:#475569;margin:0 0 16px">Ta demande d'envoi a bien été enregistrée sur le trajet <strong>{trip_route}</strong>.</p>
+    <p style="color:#475569;margin:0 0 16px">Tu trouveras en pièce jointe le récapitulatif de ton colis.</p>
     <p style="color:#475569;margin:0 0 24px">Elle est en attente de validation par l'agence.</p>
     <a href="{SITE_URL}/mes-colis" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:600;display:inline-block">Suivre mon colis →</a>"""
-    _send([customer_email], "Demande d'envoi enregistrée 📦", _base("Demande enregistrée !", body))
+
+    attachments = None
+    if shipment_data:
+        try:
+            pdf = _generate_recap_pdf(shipment_data)
+            attachments = [{"filename": f"recap_colis_{shipment_id}.pdf", "content": list(pdf)}]
+        except Exception:
+            pass
+
+    _send([customer_email], "Demande d'envoi enregistrée 📦", _base("Demande enregistrée !", body), attachments)
     _send([ADMIN_EMAIL], f"[Luggo] Nouveau colis #{shipment_id} — {trip_route}", _base(
         "Nouveau colis",
         f"<p style='color:#475569'><strong>{customer_name}</strong> ({customer_email}) a soumis un colis sur {trip_route}.</p>"
     ))
 
 
-def send_shipment_accepted(customer_email: str, customer_name: str, trip_route: str):
+def send_shipment_accepted(customer_email: str, customer_name: str, trip_route: str,
+                           shipment_data: dict | None = None):
     body = f"""
     <p style="color:#475569;margin:0 0 16px">Bonjour <strong>{customer_name}</strong>,</p>
     <p style="color:#475569;margin:0 0 16px">Bonne nouvelle ! Ton colis sur le trajet <strong>{trip_route}</strong> a été <strong style="color:#16a34a">accepté</strong> par l'agence.</p>
+    <p style="color:#475569;margin:0 0 24px">Tu trouveras en pièce jointe le récapitulatif de ton colis. Dépose-le au bureau de départ dès que possible.</p>
     <a href="{SITE_URL}/mes-colis" style="background:#16a34a;color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:600;display:inline-block">Voir mes colis →</a>"""
-    _send([customer_email], "Colis accepté ✅", _base("Colis accepté !", body))
+
+    attachments = None
+    if shipment_data:
+        try:
+            pdf = _generate_recap_pdf(shipment_data)
+            attachments = [{"filename": f"recap_colis_{shipment_data.get('id', 'X')}.pdf", "content": list(pdf)}]
+        except Exception:
+            pass
+
+    _send([customer_email], "Colis accepté ✅", _base("Colis accepté !", body), attachments)
 
 
 def send_shipment_rejected(customer_email: str, customer_name: str, trip_route: str):

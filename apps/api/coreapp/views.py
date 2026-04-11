@@ -167,7 +167,23 @@ class ShipmentCreateView(generics.ListCreateAPIView):
         )
         t = shipment.trip
         route = f"{t.origin_city} ({t.origin_country}) → {t.dest_city} ({t.dest_country})"
-        send_shipment_created(shipment.customer_email, shipment.customer_name, route, shipment.id)
+        send_shipment_created(
+            shipment.customer_email, shipment.customer_name, route, shipment.id,
+            shipment_data={
+                "id": shipment.id,
+                "route": route,
+                "customer_name": shipment.customer_name,
+                "customer_email": shipment.customer_email,
+                "customer_phone": shipment.customer_phone,
+                "weight_kg": shipment.weight_kg,
+                "description": shipment.description,
+                "price_per_kg": t.price_per_kg,
+                "delivery_type": shipment.delivery_type,
+                "delivery_address": shipment.delivery_address,
+                "status_label": "En attente",
+                "created_at": shipment.created_at.strftime("%d/%m/%Y à %H:%M"),
+            }
+        )
 
 
 class MeView(APIView):
@@ -773,12 +789,32 @@ class ShipmentTrackingView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
+    @staticmethod
+    def _shipment_data(sh, route, status_label):
+        return {
+            "id": sh.id,
+            "route": route,
+            "customer_name": sh.customer_name,
+            "customer_email": sh.customer_email,
+            "customer_phone": sh.customer_phone,
+            "weight_kg": sh.weight_kg,
+            "description": sh.description,
+            "price_per_kg": sh.trip.price_per_kg,
+            "delivery_type": sh.delivery_type,
+            "delivery_address": sh.delivery_address,
+            "status_label": status_label,
+            "created_at": sh.created_at.strftime("%d/%m/%Y à %H:%M"),
+        }
+
     TRACKING_EMAILS = {
         "DEPOSITED":  lambda sh, route: send_shipment_deposited(sh.customer_email, sh.customer_name, route),
         "IN_TRANSIT": lambda sh, route: send_shipment_in_transit(sh.customer_email, sh.customer_name, route),
         "ARRIVED":    lambda sh, route: send_shipment_arrived(sh.customer_email, sh.customer_name, route, sh.delivery_type),
         "DELIVERED":  lambda sh, route: send_shipment_delivered(sh.customer_email, sh.customer_name, route),
-        "ACCEPTED":   lambda sh, route: send_shipment_accepted(sh.customer_email, sh.customer_name, route),
+        "ACCEPTED":   lambda sh, route: send_shipment_accepted(
+            sh.customer_email, sh.customer_name, route,
+            shipment_data=ShipmentTrackingView._shipment_data(sh, route, "Accepté"),
+        ),
         "REJECTED":   lambda sh, route: send_shipment_rejected(sh.customer_email, sh.customer_name, route),
     }
 
