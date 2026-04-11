@@ -304,8 +304,15 @@ class KYCUploadView(APIView):
             kyc.status = "VERIFIED"
             kyc.extracted_data = result
             kyc.verified_at = timezone.now()
+            update_fields = ["kyc_status"]
             request.user.kyc_status = "VERIFIED"
-            request.user.save(update_fields=["kyc_status"])
+            if result.get("first_name") and not request.user.first_name:
+                request.user.first_name = result["first_name"]
+                update_fields.append("first_name")
+            if result.get("last_name") and not request.user.last_name:
+                request.user.last_name = result["last_name"]
+                update_fields.append("last_name")
+            request.user.save(update_fields=update_fields)
             if hasattr(request.user, "agency"):
                 request.user.agency.kyc_status = "VERIFIED"
                 request.user.agency.save(update_fields=["kyc_status"])
@@ -426,8 +433,17 @@ class AdminKYCReviewView(APIView):
             kyc.verified_at = timezone.now()
         kyc.save()
 
+        update_fields = ["kyc_status"]
         kyc.user.kyc_status = new_status
-        kyc.user.save(update_fields=["kyc_status"])
+        if new_status == "VERIFIED":
+            data = kyc.extracted_data or {}
+            if data.get("first_name") and not kyc.user.first_name:
+                kyc.user.first_name = data["first_name"]
+                update_fields.append("first_name")
+            if data.get("last_name") and not kyc.user.last_name:
+                kyc.user.last_name = data["last_name"]
+                update_fields.append("last_name")
+        kyc.user.save(update_fields=update_fields)
         if new_status == "VERIFIED":
             send_kyc_approved(kyc.user.email, kyc.user.username)
             notify(kyc.user, "Identité vérifiée ✅", "Ton document d'identité a été validé.", "/trips")
