@@ -1,16 +1,14 @@
-from django.db import migrations, models
+from django.db import migrations
 
 
 class Migration(migrations.Migration):
+    """
+    Email uniqueness is enforced at the serializer level, not DB level,
+    to avoid constraint failures with existing blank emails.
+    """
 
     dependencies = [
         ("coreapp", "0009_reclamation"),
     ]
 
-    operations = [
-        migrations.AlterField(
-            model_name="user",
-            name="email",
-            field=models.EmailField(max_length=254, unique=True),
-        ),
-    ]
+    operations = []
