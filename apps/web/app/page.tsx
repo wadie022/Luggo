@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Package, Truck, MapPin, ShieldCheck, ArrowRight, Building2, CheckCircle2 } from "lucide-react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Pagination } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/pagination";
 
 export default function HomePage() {
   return (
@@ -26,43 +31,66 @@ export default function HomePage() {
       </header>
 
       {/* ── HERO ── */}
-      <section className="mx-auto max-w-5xl px-4 pt-20 pb-16 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold mb-6">
-          <ShieldCheck className="h-3.5 w-3.5" /> Agences vérifiées · Suivi en temps réel
-        </div>
-
-        <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight text-slate-900">
-          Envoyez vos colis<br />
-          <span className="text-blue-600">Europe ↔ Maroc</span>
-        </h1>
-
-        <p className="mt-6 text-lg md:text-xl text-slate-500 max-w-2xl mx-auto leading-relaxed">
-          Connectez-vous à des agences de transport vérifiées. Réservez en ligne, déposez votre colis, suivez chaque étape.
-        </p>
-
-        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
-            href="/trips"
-            className="px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-base shadow-md shadow-blue-100 flex items-center justify-center gap-2"
-          >
-            Voir les trajets <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link
-            href="/register"
-            className="px-6 py-3.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-semibold text-base"
-          >
-            Créer un compte gratuit
-          </Link>
-        </div>
-
-        {/* Trust badges */}
-        <div className="mt-10 flex flex-wrap justify-center gap-4 text-sm text-slate-500">
-          {["France · Belgique · Espagne · Italie", "Suivi à chaque étape", "Livraison à domicile disponible"].map((t) => (
-            <span key={t} className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-              {t}
-            </span>
+      <section className="relative">
+        <Swiper
+          modules={[Autoplay, Pagination]}
+          autoplay={{ delay: 4500, disableOnInteraction: false }}
+          loop
+          pagination={{ clickable: true }}
+          className="w-full"
+        >
+          {["/images/hero/slide-1.jpg", "/images/hero/slide-2.jpg", "/images/hero/slide-3.jpg"].map((src, idx) => (
+            <SwiperSlide key={idx}>
+              <div className="relative h-[80vh] min-h-[540px] w-full overflow-hidden">
+                <Image src={src} alt="Luggo transport" fill priority={idx === 0} className="object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/70 to-white/10" />
+              </div>
+            </SwiperSlide>
           ))}
+        </Swiper>
+
+        {/* Contenu hero par-dessus le slider */}
+        <div className="absolute inset-0 z-10 flex items-center pointer-events-none">
+          <div className="mx-auto max-w-5xl px-4 w-full">
+            <div className="max-w-xl pointer-events-auto">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold mb-5">
+                <ShieldCheck className="h-3.5 w-3.5" /> Agences vérifiées · Suivi en temps réel
+              </div>
+
+              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight text-slate-900">
+                Envoyez vos colis<br />
+                <span className="text-blue-600">Europe ↔ Maroc</span>
+              </h1>
+
+              <p className="mt-4 text-base md:text-lg text-slate-600 leading-relaxed">
+                Connectez-vous à des agences vérifiées. Réservez, déposez, suivez chaque étape en temps réel.
+              </p>
+
+              <div className="mt-7 flex flex-col sm:flex-row gap-3">
+                <Link
+                  href="/trips"
+                  className="px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-base shadow-md shadow-blue-100 flex items-center justify-center gap-2"
+                >
+                  Voir les trajets <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="/register"
+                  className="px-6 py-3.5 rounded-2xl border border-slate-200 bg-white/90 hover:bg-white text-slate-800 font-semibold text-base text-center"
+                >
+                  Créer un compte gratuit
+                </Link>
+              </div>
+
+              <div className="mt-8 flex flex-wrap gap-4 text-sm text-slate-500">
+                {["France · Belgique · Espagne · Italie", "Suivi à chaque étape", "Livraison à domicile"].map((t) => (
+                  <span key={t} className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
