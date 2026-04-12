@@ -29,73 +29,72 @@ export default function MapPage() {
       .finally(() => setLoading(false));
   }, [router]);
 
-  // Agences distinctes pour la liste latérale
   const agencyMap = new Map<number, AgencyPoint>();
   for (const p of points) {
     if (!agencyMap.has(p.agency_id) || p.is_main) agencyMap.set(p.agency_id, p);
   }
 
   return (
-    <main className="min-h-screen bg-white text-slate-900">
-      <header className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur border-b border-slate-800">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-          <Link href="/trips" className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-extrabold">L</div>
-            <span className="font-bold tracking-tight text-lg text-white">Luggo</span>
+    <main className="min-h-screen bg-[#080808] text-white">
+      <header className="sticky top-0 z-50 bg-[#080808]/95 backdrop-blur border-b border-white/[0.06]">
+        <div className="mx-auto max-w-6xl px-5 py-3 flex items-center justify-between">
+          <Link href="/trips" className="flex items-center gap-2.5">
+            <div className="h-9 w-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-lg">L</div>
+            <span className="font-black text-lg tracking-tight">Luggo</span>
           </Link>
           <div className="flex items-center gap-2">
-            <Link href="/trips" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">Trajets</Link>
+            <Link href="/trips" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-white/60 hover:text-white hover:bg-white/[0.06] transition">Trajets</Link>
             <NotificationBell />
-            <button onClick={handleLogout} className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">Déconnexion</button>
+            <button onClick={handleLogout} className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-white/60 hover:text-white hover:bg-white/[0.06] transition">Déconnexion</button>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        <Link href="/trips" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 mb-6">
+      <div className="mx-auto max-w-6xl px-5 py-8">
+        <Link href="/trips" className="inline-flex items-center gap-1 text-sm text-white/40 hover:text-white mb-8 transition">
           <ArrowLeft className="h-4 w-4" /> Retour aux trajets
         </Link>
 
-        <div className="text-xs font-semibold tracking-widest text-blue-600 uppercase mb-2">Réseau Luggo</div>
-        <h1 className="text-2xl md:text-3xl font-extrabold mb-2">Agences partenaires</h1>
-        <p className="text-slate-500 text-sm mb-6">Trouve l'agence la plus proche de toi.</p>
+        <p className="text-xs font-bold tracking-widest text-blue-500 uppercase mb-2">Réseau Luggo</p>
+        <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-2">Agences partenaires</h1>
+        <p className="text-white/40 text-sm mb-8">Trouve l'agence la plus proche de toi.</p>
 
         {loading ? (
-          <p className="text-slate-400">Chargement…</p>
+          <p className="text-white/30">Chargement…</p>
         ) : (
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-5">
             {/* Map */}
-            <div className="md:col-span-2 rounded-3xl overflow-hidden border border-slate-200 shadow-sm" style={{ height: 480 }}>
+            <div className="md:col-span-2 rounded-2xl overflow-hidden border border-white/[0.06]" style={{ height: 480 }}>
               <MapView agencies={points} showContact={role !== "AGENCY"} />
             </div>
 
-            {/* Liste (une entrée par agence) */}
+            {/* Liste */}
             <div className="flex flex-col gap-3 overflow-y-auto max-h-[480px] pr-1">
               {agencyMap.size === 0 ? (
-                <p className="text-slate-400 text-sm">Aucune agence vérifiée pour le moment.</p>
+                <p className="text-white/30 text-sm">Aucune agence vérifiée pour le moment.</p>
               ) : Array.from(agencyMap.values()).map((a) => {
                 const branchCount = points.filter(p => p.agency_id === a.agency_id).length;
                 return (
-                  <div key={a.agency_id} className="rounded-2xl border border-slate-200 bg-white p-4 hover:border-blue-200 hover:shadow-sm transition">
-                    <div className="font-semibold text-slate-900 text-sm">{a.legal_name}</div>
-                    <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
+                  <div key={a.agency_id} className="rounded-2xl border border-white/[0.06] bg-[#111111] p-4 hover:border-blue-500/20 transition group">
+                    <div className="font-bold text-sm">{a.legal_name}</div>
+                    <div className="flex items-center gap-1 text-xs text-white/40 mt-1">
                       <MapPin className="h-3 w-3" />
                       {a.city}, {a.country}
                     </div>
                     {branchCount > 1 && (
-                      <div className="text-xs text-blue-600 mt-0.5">{branchCount} adresses</div>
+                      <div className="text-xs text-blue-400 mt-0.5">{branchCount} adresses</div>
                     )}
-                    <div className="mt-3 flex gap-2">
+                    <div className="mt-3 flex gap-3">
                       <Link
                         href={`/trips?origin_country=${a.country}`}
-                        className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                        className="text-xs font-bold text-blue-400 hover:text-blue-300 transition"
                       >
                         Voir les trajets →
                       </Link>
                       {role !== "AGENCY" && (
                         <Link
                           href={`/messages?agency=${a.agency_id}&name=${encodeURIComponent(a.legal_name)}`}
-                          className="text-xs font-semibold text-emerald-600 hover:text-emerald-800"
+                          className="text-xs font-bold text-emerald-400 hover:text-emerald-300 transition"
                         >
                           Contacter →
                         </Link>

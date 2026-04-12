@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE, authHeader, fetchMe, logout, getRole } from "@/lib/api";
+import { API_BASE, authHeader, fetchMe, logout } from "@/lib/api";
 import { Package, MapPin, ArrowRight, Clock, CheckCircle2, XCircle, Truck, Home, Building2, Search, Star } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 
@@ -36,45 +36,33 @@ type Shipment = {
 };
 
 const TRACKING_STEPS = [
-  { key: "PENDING",    label: "En attente",          icon: Clock },
-  { key: "ACCEPTED",   label: "Accepté",             icon: CheckCircle2 },
-  { key: "DEPOSITED",  label: "Déposé au bureau",    icon: Building2 },
-  { key: "IN_TRANSIT", label: "En transit",           icon: Truck },
-  { key: "ARRIVED",    label: "Arrivé à destination", icon: MapPin },
-  { key: "DELIVERED",  label: "Livré",                icon: CheckCircle2 },
+  { key: "PENDING",    label: "En attente",       icon: Clock },
+  { key: "ACCEPTED",   label: "Accepté",          icon: CheckCircle2 },
+  { key: "DEPOSITED",  label: "Déposé",           icon: Building2 },
+  { key: "IN_TRANSIT", label: "En transit",        icon: Truck },
+  { key: "ARRIVED",    label: "Arrivé",           icon: MapPin },
+  { key: "DELIVERED",  label: "Livré",            icon: CheckCircle2 },
 ];
-
 const STATUS_ORDER = ["PENDING", "ACCEPTED", "DEPOSITED", "IN_TRANSIT", "ARRIVED", "DELIVERED"];
 
-const STATUS_COLOR: Record<string, string> = {
-  PENDING:    "text-amber-600",
-  ACCEPTED:   "text-blue-600",
-  DEPOSITED:  "text-blue-600",
-  IN_TRANSIT: "text-purple-600",
-  ARRIVED:    "text-emerald-600",
-  DELIVERED:  "text-emerald-700",
-  REJECTED:   "text-red-600",
-};
-
 const FILTER_OPTIONS = [
-  { key: "ALL",       label: "Tous" },
-  { key: "PENDING",   label: "En attente" },
-  { key: "ACCEPTED",  label: "Accepté" },
-  { key: "DEPOSITED", label: "Déposé" },
-  { key: "IN_TRANSIT",label: "En transit" },
-  { key: "ARRIVED",   label: "Arrivé" },
-  { key: "DELIVERED", label: "Livré" },
-  { key: "REJECTED",  label: "Refusé" },
+  { key: "ALL",        label: "Tous" },
+  { key: "PENDING",    label: "En attente" },
+  { key: "ACCEPTED",   label: "Accepté" },
+  { key: "DEPOSITED",  label: "Déposé" },
+  { key: "IN_TRANSIT", label: "En transit" },
+  { key: "ARRIVED",    label: "Arrivé" },
+  { key: "DELIVERED",  label: "Livré" },
+  { key: "REJECTED",   label: "Refusé" },
 ];
 
 export default function MesColisPage() {
   const router = useRouter();
-  const [shipments, setShipments]   = useState<Shipment[]>([]);
-  const [loading, setLoading]       = useState(true);
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
-  const [statusFilter, setStatusFilter]   = useState("ALL");
-  const [search, setSearch]               = useState("");
-  const role = typeof window === "undefined" ? null : getRole();
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [search, setSearch] = useState("");
 
   function handleLogout() { logout(); router.replace("/login"); }
 
@@ -93,7 +81,7 @@ export default function MesColisPage() {
   useEffect(() => {
     fetchMe().catch(() => router.replace("/login"));
     load();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function confirmDeposit(id: number) {
@@ -130,43 +118,43 @@ export default function MesColisPage() {
   });
 
   if (loading) return (
-    <main className="min-h-screen bg-white flex items-center justify-center">
-      <p className="text-slate-500">Chargement…</p>
+    <main className="min-h-screen bg-[#080808] flex items-center justify-center">
+      <p className="text-white/40">Chargement…</p>
     </main>
   );
 
   return (
-    <main className="min-h-screen bg-white text-slate-900">
+    <main className="min-h-screen bg-[#080808] text-white">
       {/* NAVBAR */}
-      <header className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur border-b border-slate-800">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-          <Link href="/trips" className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-extrabold">L</div>
-            <span className="font-bold tracking-tight text-lg text-white">Luggo</span>
+      <header className="sticky top-0 z-50 bg-[#080808]/95 backdrop-blur border-b border-white/[0.06]">
+        <div className="mx-auto max-w-6xl px-5 py-3 flex items-center justify-between">
+          <Link href="/trips" className="flex items-center gap-2.5">
+            <div className="h-9 w-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-lg">L</div>
+            <span className="font-black text-lg tracking-tight">Luggo</span>
           </Link>
           <div className="flex items-center gap-2">
-            <Link href="/trips" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">Trajets</Link>
-            <Link href="/reclamations" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">Réclamations</Link>
+            <Link href="/trips" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-white/60 hover:text-white hover:bg-white/[0.06] transition">Trajets</Link>
+            <Link href="/reclamations" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-white/60 hover:text-white hover:bg-white/[0.06] transition">Réclamations</Link>
             <NotificationBell />
-            <button onClick={handleLogout} className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">Déconnexion</button>
+            <button onClick={handleLogout} className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-white/60 hover:text-white hover:bg-white/[0.06] transition">Déconnexion</button>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-4xl px-4 py-8">
-        <div className="text-xs font-semibold tracking-widest text-blue-600 uppercase mb-2">Mon espace</div>
-        <h1 className="text-2xl md:text-3xl font-extrabold mb-1">Mes colis</h1>
-        <p className="text-slate-500 text-sm mb-6">Suis l'état de tous tes envois en temps réel.</p>
+      <div className="mx-auto max-w-4xl px-5 py-10">
+        <p className="text-xs font-bold tracking-widest text-blue-500 uppercase mb-2">Mon espace</p>
+        <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-1">Mes colis</h1>
+        <p className="text-white/45 text-sm mb-8">Suis l'état de tous tes envois en temps réel.</p>
 
         {/* Search + filter */}
         <div className="mb-6 flex flex-col gap-3">
           <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/25" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher par ville, agence, contenu…"
-              className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] focus:border-blue-500/50 focus:outline-none text-sm text-white placeholder:text-white/25 transition"
             />
           </div>
           <div className="flex flex-wrap gap-2">
@@ -174,17 +162,15 @@ export default function MesColisPage() {
               <button
                 key={f.key}
                 onClick={() => setStatusFilter(f.key)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${
                   statusFilter === f.key
                     ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    : "bg-white/[0.04] text-white/50 border-white/[0.08] hover:bg-white/[0.08] hover:text-white"
                 }`}
               >
                 {f.label}
                 {f.key !== "ALL" && (
-                  <span className="ml-1 opacity-60">
-                    ({shipments.filter((s) => s.status === f.key).length})
-                  </span>
+                  <span className="ml-1 opacity-60">({shipments.filter((s) => s.status === f.key).length})</span>
                 )}
               </button>
             ))}
@@ -192,19 +178,19 @@ export default function MesColisPage() {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-12 text-center">
-            <Package className="mx-auto h-10 w-10 text-slate-300 mb-3" />
-            <p className="text-slate-500 font-medium">
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-14 text-center">
+            <Package className="mx-auto h-10 w-10 text-white/20 mb-3" />
+            <p className="text-white/40 font-medium">
               {shipments.length === 0 ? "Aucun colis pour le moment." : "Aucun résultat pour ce filtre."}
             </p>
             {shipments.length === 0 && (
-              <Link href="/trips" className="mt-4 inline-block px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm">
+              <Link href="/trips" className="mt-5 inline-block px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition">
                 Voir les trajets →
               </Link>
             )}
           </div>
         ) : (
-          <div className="grid gap-5">
+          <div className="grid gap-4">
             {filtered.map((sh) => (
               <ShipmentCard
                 key={sh.id}
@@ -221,9 +207,7 @@ export default function MesColisPage() {
 }
 
 function ShipmentCard({ sh, onConfirmDeposit, actionLoading }: {
-  sh: Shipment;
-  onConfirmDeposit: () => void;
-  actionLoading: boolean;
+  sh: Shipment; onConfirmDeposit: () => void; actionLoading: boolean;
 }) {
   const t = sh.trip_detail;
   const currentIdx = STATUS_ORDER.indexOf(sh.status);
@@ -249,28 +233,33 @@ function ShipmentCard({ sh, onConfirmDeposit, actionLoading }: {
   }
 
   return (
-    <article className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      {/* Header trajet */}
-      <div className="p-5 border-b border-slate-100 bg-gradient-to-br from-blue-50/60 to-white">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2 font-extrabold text-lg tracking-tight">
+    <article className="rounded-2xl border border-white/[0.06] bg-[#111111] overflow-hidden">
+      {/* Header */}
+      <div className="p-5 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+          <div className="flex items-center gap-2 font-black text-lg tracking-tight">
             <span>{t.origin_city}</span>
             <ArrowRight className="h-4 w-4 text-blue-500 shrink-0" />
             <span>{t.dest_city}</span>
           </div>
-          <span className={`text-xs font-bold ${STATUS_COLOR[sh.status] ?? "text-slate-600"}`}>
+          <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
+            sh.status === "DELIVERED" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+            sh.status === "IN_TRANSIT" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" :
+            sh.status === "REJECTED"  ? "bg-red-500/10 text-red-400 border-red-500/20" :
+            "bg-blue-500/10 text-blue-400 border-blue-500/20"
+          }`}>
             {TRACKING_STEPS.find((s) => s.key === sh.status)?.label ?? sh.status}
           </span>
         </div>
-        <div className="mt-1 text-xs text-slate-500 font-medium">
+        <div className="text-xs text-white/40 font-medium">
           {t.origin_country} → {t.dest_country} · {t.agency_name} · {sh.weight_kg} kg
         </div>
       </div>
 
       {/* Tracking timeline */}
       {!isRejected && (
-        <div className="px-5 py-4 border-b border-slate-100">
-          <div className="flex items-center gap-1 overflow-x-auto pb-1">
+        <div className="px-5 py-4 border-b border-white/[0.04] overflow-x-auto">
+          <div className="flex items-center gap-1 min-w-max">
             {TRACKING_STEPS.map((step, i) => {
               const done   = currentIdx >= i;
               const active = currentIdx === i;
@@ -280,17 +269,17 @@ function ShipmentCard({ sh, onConfirmDeposit, actionLoading }: {
                   <div className="flex flex-col items-center gap-1">
                     <div className={`h-7 w-7 rounded-full flex items-center justify-center transition ${
                       active ? "bg-blue-600 text-white" :
-                      done   ? "bg-emerald-100 text-emerald-600" :
-                      "bg-slate-100 text-slate-400"
+                      done   ? "bg-emerald-500/20 text-emerald-400" :
+                      "bg-white/[0.04] text-white/20"
                     }`}>
                       <Icon className="h-3.5 w-3.5" />
                     </div>
-                    <span className={`text-[10px] font-semibold text-center max-w-[60px] leading-tight ${
-                      active ? "text-blue-600" : done ? "text-emerald-600" : "text-slate-400"
+                    <span className={`text-[10px] font-bold text-center max-w-[56px] leading-tight ${
+                      active ? "text-blue-400" : done ? "text-emerald-400" : "text-white/25"
                     }`}>{step.label}</span>
                   </div>
                   {i < TRACKING_STEPS.length - 1 && (
-                    <div className={`h-0.5 w-6 mb-4 shrink-0 rounded ${done && currentIdx > i ? "bg-emerald-400" : "bg-slate-200"}`} />
+                    <div className={`h-0.5 w-5 mb-4 shrink-0 rounded-full ${done && currentIdx > i ? "bg-emerald-500/50" : "bg-white/[0.06]"}`} />
                   )}
                 </div>
               );
@@ -300,26 +289,26 @@ function ShipmentCard({ sh, onConfirmDeposit, actionLoading }: {
       )}
 
       {isRejected && (
-        <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2 text-red-600 text-sm">
+        <div className="px-5 py-3 border-b border-white/[0.04] flex items-center gap-2 text-red-400 text-sm">
           <XCircle className="h-4 w-4 shrink-0" /> Colis refusé par l'agence.
         </div>
       )}
 
       {/* Infos + actions */}
       <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-        <div className="flex-1 grid gap-1 text-sm text-slate-600">
-          {sh.description && <p><span className="font-semibold text-slate-800">Description :</span> {sh.description}</p>}
-          <p className="flex items-center gap-1">
+        <div className="flex-1 grid gap-1 text-sm text-white/60">
+          {sh.description && <p><span className="font-semibold text-white/80">Description :</span> {sh.description}</p>}
+          <p className="flex items-center gap-1.5">
             {sh.delivery_type === "HOME_DELIVERY" ? <Home className="h-3.5 w-3.5" /> : <Building2 className="h-3.5 w-3.5" />}
             {sh.delivery_type === "HOME_DELIVERY" ? `Livraison domicile — ${sh.delivery_address}` : "Retrait au bureau"}
           </p>
-          <p className="text-xs text-slate-400">Créé le {new Date(sh.created_at).toLocaleDateString("fr-FR")}</p>
+          <p className="text-xs text-white/30">Créé le {new Date(sh.created_at).toLocaleDateString("fr-FR")}</p>
         </div>
 
         <div className="flex flex-col sm:items-end gap-2 shrink-0">
           <Link
             href={`/mes-colis/${sh.id}`}
-            className="px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-sm font-semibold text-slate-700 transition text-center"
+            className="px-4 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-sm font-bold text-white/70 hover:text-white transition text-center"
           >
             Voir détails →
           </Link>
@@ -327,7 +316,7 @@ function ShipmentCard({ sh, onConfirmDeposit, actionLoading }: {
             <button
               onClick={onConfirmDeposit}
               disabled={actionLoading}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold transition"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-bold transition"
             >
               <Building2 className="h-4 w-4" />
               {actionLoading ? "Confirmation…" : "Confirmer dépôt"}
@@ -336,14 +325,14 @@ function ShipmentCard({ sh, onConfirmDeposit, actionLoading }: {
           {sh.status === "DELIVERED" && !reviewSent && (
             <button
               onClick={() => setShowReview(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 text-sm font-semibold transition"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 text-amber-400 text-sm font-bold transition"
             >
               <Star className="h-4 w-4" />
               Laisser un avis
             </button>
           )}
           {reviewSent && (
-            <div className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+            <div className="text-xs font-bold text-emerald-400 flex items-center gap-1">
               <CheckCircle2 className="h-4 w-4" /> Avis envoyé
             </div>
           )}
@@ -351,15 +340,15 @@ function ShipmentCard({ sh, onConfirmDeposit, actionLoading }: {
       </div>
 
       {showReview && (
-        <div className="border-t border-slate-100 p-5 bg-amber-50/40">
-          <div className="font-semibold text-sm mb-3 flex items-center gap-2">
-            <Star className="h-4 w-4 text-amber-500" />
+        <div className="border-t border-white/[0.06] p-5 bg-amber-500/[0.03]">
+          <div className="font-bold text-sm mb-3 flex items-center gap-2 text-amber-400">
+            <Star className="h-4 w-4" />
             Votre avis pour {t.agency_name}
           </div>
           <div className="flex gap-1 mb-3">
             {[1,2,3,4,5].map((s) => (
               <button key={s} type="button" onClick={() => setReviewRating(s)}>
-                <Star className={`h-6 w-6 transition ${s <= reviewRating ? "text-amber-400 fill-amber-400" : "text-slate-300 fill-slate-300"}`} />
+                <Star className={`h-6 w-6 transition ${s <= reviewRating ? "text-amber-400 fill-amber-400" : "text-white/15 fill-white/15"}`} />
               </button>
             ))}
           </div>
@@ -368,20 +357,15 @@ function ShipmentCard({ sh, onConfirmDeposit, actionLoading }: {
             onChange={(e) => setReviewComment(e.target.value)}
             placeholder="Partagez votre expérience (optionnel)…"
             rows={3}
-            className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 mb-3 resize-none"
+            className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] focus:border-amber-500/50 focus:outline-none text-sm text-white placeholder:text-white/25 mb-3 resize-none"
           />
           <div className="flex gap-2">
-            <button
-              onClick={submitReview}
-              disabled={reviewLoading}
-              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white text-sm font-semibold"
-            >
+            <button onClick={submitReview} disabled={reviewLoading}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white text-sm font-bold transition">
               {reviewLoading ? "Envoi…" : "Envoyer"}
             </button>
-            <button
-              onClick={() => setShowReview(false)}
-              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50"
-            >
+            <button onClick={() => setShowReview(false)}
+              className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/60 text-sm font-bold hover:text-white transition">
               Annuler
             </button>
           </div>
