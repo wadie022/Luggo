@@ -35,9 +35,9 @@ function calcAge(dob: string): number | null {
 }
 
 const KYC_BADGE: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
-  VERIFIED: { label: "Identité vérifiée", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", icon: <ShieldCheck className="h-4 w-4" /> },
-  REJECTED: { label: "Vérification rejetée", cls: "bg-red-500/10 text-red-400 border-red-500/20", icon: <ShieldX className="h-4 w-4" /> },
-  PENDING:  { label: "Vérification en attente", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20", icon: <Clock className="h-4 w-4" /> },
+  VERIFIED: { label: "Identité vérifiée", cls: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: <ShieldCheck className="h-4 w-4" /> },
+  REJECTED: { label: "Vérification rejetée", cls: "bg-red-50 text-red-600 border-red-200", icon: <ShieldX className="h-4 w-4" /> },
+  PENDING:  { label: "Vérification en attente", cls: "bg-amber-50 text-amber-700 border-amber-200", icon: <Clock className="h-4 w-4" /> },
 };
 
 export default function ProfilePage() {
@@ -90,8 +90,8 @@ export default function ProfilePage() {
   }
 
   if (loading) return (
-    <main className="min-h-screen bg-[#080808] flex items-center justify-center">
-      <p className="text-white/40">Chargement…</p>
+    <main className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
+      <p className="text-gray-400">Chargement…</p>
     </main>
   );
 
@@ -104,24 +104,24 @@ export default function ProfilePage() {
     : null;
 
   return (
-    <main className="min-h-screen bg-[#080808] text-white">
+    <main className="min-h-screen bg-[#f8f9fb] text-[#0a0a0a]">
       {/* NAVBAR */}
-      <header className="sticky top-0 z-50 bg-[#080808]/95 backdrop-blur border-b border-white/[0.06]">
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
         <div className="mx-auto max-w-6xl px-5 py-3 flex items-center justify-between">
           <Link href="/trips" className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-lg">L</div>
-            <span className="font-black text-lg tracking-tight">Luggo</span>
+            <div className="h-9 w-9 rounded-xl bg-[#2563eb] text-white flex items-center justify-center font-black text-lg">L</div>
+            <span className="font-black text-lg tracking-tight text-[#0a0a0a]">Luggo</span>
           </Link>
           <div className="flex items-center gap-2">
-            <Link href="/trips" className="px-3 py-2 rounded-xl text-sm font-semibold text-white/60 hover:text-white hover:bg-white/[0.06] transition">Trajets</Link>
+            <Link href="/trips" className="px-3 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:text-[#2563eb] hover:bg-blue-50 transition">Trajets</Link>
             <NotificationBell />
-            <button onClick={handleLogout} className="px-3 py-2 rounded-xl text-sm font-semibold text-white/60 hover:text-white hover:bg-white/[0.06] transition">Déconnexion</button>
+            <button onClick={handleLogout} className="px-3 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:text-[#0a0a0a] hover:bg-gray-50 transition">Déconnexion</button>
           </div>
         </div>
       </header>
 
       <div className="mx-auto max-w-2xl px-5 py-10">
-        <Link href="/trips" className="inline-flex items-center gap-1 text-sm text-white/40 hover:text-white mb-8 transition">
+        <Link href="/trips" className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-[#2563eb] mb-8 transition">
           <ArrowLeft className="h-4 w-4" /> Retour aux trajets
         </Link>
 
@@ -130,7 +130,7 @@ export default function ProfilePage() {
           <div className="relative">
             <div
               onClick={() => avatarRef.current?.click()}
-              className="h-24 w-24 rounded-full overflow-hidden bg-blue-600 flex items-center justify-center cursor-pointer ring-4 ring-white/[0.06] hover:ring-blue-500/50 transition"
+              className="h-24 w-24 rounded-full overflow-hidden bg-[#2563eb] flex items-center justify-center cursor-pointer ring-4 ring-gray-100 hover:ring-[#2563eb]/30 transition"
             >
               {avatarPreview
                 ? <img src={avatarPreview} alt="Avatar" className="h-full w-full object-cover" />
@@ -139,47 +139,47 @@ export default function ProfilePage() {
             </div>
             <button
               onClick={() => avatarRef.current?.click()}
-              className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-[#1a1a1a] border-2 border-white/10 text-white flex items-center justify-center hover:bg-white/10 transition"
+              className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-white border-2 border-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-50 transition shadow-sm"
             >
               <Camera className="h-4 w-4" />
             </button>
             <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
           </div>
-          {uploading && <p className="text-xs text-white/30">Mise à jour…</p>}
+          {uploading && <p className="text-xs text-gray-400">Mise à jour…</p>}
           <div className="text-center">
-            <div className="text-xl font-black">{me?.username}</div>
-            <div className="text-sm text-white/40">{me?.email}</div>
+            <div className="text-xl font-black text-[#0a0a0a]">{me?.username}</div>
+            <div className="text-sm text-gray-500">{me?.email}</div>
           </div>
           <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-bold ${badge.cls}`}>
             {badge.icon} {badge.label}
           </div>
           {avgRating && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200">
               <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-              <span className="font-black text-amber-400">{avgRating}</span>
-              <span className="text-xs text-amber-500/70">/ 5</span>
+              <span className="font-black text-amber-700">{avgRating}</span>
+              <span className="text-xs text-amber-600/70">/ 5</span>
             </div>
           )}
         </div>
 
         {/* Infos */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#111111] p-6 mb-5">
-          <h2 className="font-black text-lg mb-5">Informations personnelles</h2>
-          {saveMsg && <p className="text-xs font-bold text-emerald-400 mb-3">{saveMsg}</p>}
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 mb-5 shadow-sm">
+          <h2 className="font-black text-lg mb-5 text-[#0a0a0a]">Informations personnelles</h2>
+          {saveMsg && <p className="text-xs font-bold text-emerald-600 mb-3">{saveMsg}</p>}
           <div className="grid gap-2">
-            <DarkInfoRow icon={<User className="h-4 w-4" />} label="Nom d'utilisateur" value={me?.username ?? "—"} />
-            <DarkInfoRow icon={<Mail className="h-4 w-4" />} label="Email" value={me?.email ?? "—"} />
-            {me?.first_name && <DarkInfoRow icon={<User className="h-4 w-4" />} label="Prénom" value={me.first_name} />}
-            {me?.last_name  && <DarkInfoRow icon={<User className="h-4 w-4" />} label="Nom" value={me.last_name} />}
-            {ext?.last_name && <DarkInfoRow icon={<User className="h-4 w-4" />} label="Nom" value={ext.last_name} fromKyc />}
-            {ext?.first_name && <DarkInfoRow icon={<User className="h-4 w-4" />} label="Prénom" value={ext.first_name} fromKyc />}
-            {age !== null && <DarkInfoRow icon={<Calendar className="h-4 w-4" />} label="Âge" value={`${age} ans`} fromKyc />}
-            {ext?.date_of_birth && <DarkInfoRow icon={<Calendar className="h-4 w-4" />} label="Date de naissance" value={ext.date_of_birth} fromKyc />}
-            {ext?.country && <DarkInfoRow icon={<MapPin className="h-4 w-4" />} label="Pays" value={ext.country} fromKyc />}
-            {ext?.id_number && <DarkInfoRow icon={<CreditCard className="h-4 w-4" />} label="N° de document" value={ext.id_number} fromKyc />}
+            <InfoRow icon={<User className="h-4 w-4" />} label="Nom d'utilisateur" value={me?.username ?? "—"} />
+            <InfoRow icon={<Mail className="h-4 w-4" />} label="Email" value={me?.email ?? "—"} />
+            {me?.first_name && <InfoRow icon={<User className="h-4 w-4" />} label="Prénom" value={me.first_name} />}
+            {me?.last_name  && <InfoRow icon={<User className="h-4 w-4" />} label="Nom" value={me.last_name} />}
+            {ext?.last_name && <InfoRow icon={<User className="h-4 w-4" />} label="Nom" value={ext.last_name} fromKyc />}
+            {ext?.first_name && <InfoRow icon={<User className="h-4 w-4" />} label="Prénom" value={ext.first_name} fromKyc />}
+            {age !== null && <InfoRow icon={<Calendar className="h-4 w-4" />} label="Âge" value={`${age} ans`} fromKyc />}
+            {ext?.date_of_birth && <InfoRow icon={<Calendar className="h-4 w-4" />} label="Date de naissance" value={ext.date_of_birth} fromKyc />}
+            {ext?.country && <InfoRow icon={<MapPin className="h-4 w-4" />} label="Pays" value={ext.country} fromKyc />}
+            {ext?.id_number && <InfoRow icon={<CreditCard className="h-4 w-4" />} label="N° de document" value={ext.id_number} fromKyc />}
           </div>
           {me?.kyc_status !== "VERIFIED" && (
-            <div className="mt-5 rounded-xl bg-amber-500/10 border border-amber-500/20 px-4 py-3 text-sm text-amber-400 flex items-center justify-between gap-3">
+            <div className="mt-5 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700 flex items-center justify-between gap-3">
               <span>Les infos d'identité apparaîtront ici après vérification KYC.</span>
               <Link href="/profile/kyc" className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-bold hover:bg-amber-400 transition">
                 Vérifier →
@@ -190,17 +190,17 @@ export default function ProfilePage() {
 
         {/* Liens rapides */}
         <div className="grid grid-cols-2 gap-3 mb-8">
-          <Link href="/profile/kyc" className="rounded-2xl border border-white/[0.06] bg-[#111111] p-4 hover:border-blue-500/20 transition group">
-            <ShieldCheck className="h-5 w-5 text-blue-500 mb-3" />
-            <div className="font-bold text-sm">Vérification KYC</div>
-            <div className="text-xs text-white/40 mt-0.5">
+          <Link href="/profile/kyc" className="rounded-2xl border border-gray-100 bg-white p-4 hover:border-[#2563eb]/20 hover:shadow-md transition group shadow-sm">
+            <ShieldCheck className="h-5 w-5 text-[#2563eb] mb-3" />
+            <div className="font-bold text-sm text-[#0a0a0a]">Vérification KYC</div>
+            <div className="text-xs text-gray-400 mt-0.5">
               {me?.kyc_status === "VERIFIED" ? "Identité vérifiée ✓" : "À compléter"}
             </div>
           </Link>
-          <Link href="/mes-colis" className="rounded-2xl border border-white/[0.06] bg-[#111111] p-4 hover:border-emerald-500/20 transition group">
-            <Package className="h-5 w-5 text-emerald-500 mb-3" />
-            <div className="font-bold text-sm">Mes colis</div>
-            <div className="text-xs text-white/40 mt-0.5">Suivi de tes envois</div>
+          <Link href="/mes-colis" className="rounded-2xl border border-gray-100 bg-white p-4 hover:border-emerald-200 hover:shadow-md transition group shadow-sm">
+            <Package className="h-5 w-5 text-emerald-600 mb-3" />
+            <div className="font-bold text-sm text-[#0a0a0a]">Mes colis</div>
+            <div className="text-xs text-gray-400 mt-0.5">Suivi de tes envois</div>
           </Link>
         </div>
 
@@ -208,29 +208,29 @@ export default function ProfilePage() {
         <div>
           <div className="flex items-center justify-between mb-5">
             <div>
-              <p className="text-xs font-bold tracking-widest text-blue-500 uppercase mb-1">Ma réputation</p>
-              <h2 className="text-xl font-black">Avis des agences</h2>
+              <p className="text-xs font-bold tracking-widest text-[#2563eb] uppercase mb-1">Ma réputation</p>
+              <h2 className="text-xl font-black text-[#0a0a0a]">Avis des agences</h2>
             </div>
           </div>
           {reviewsReceived.length === 0 ? (
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-10 text-center">
-              <Star className="mx-auto h-8 w-8 text-white/15 mb-2" />
-              <p className="text-white/35 text-sm">Aucun avis reçu pour le moment.</p>
+            <div className="rounded-2xl border border-gray-100 bg-white p-10 text-center shadow-sm">
+              <Star className="mx-auto h-8 w-8 text-gray-300 mb-2" />
+              <p className="text-gray-400 text-sm">Aucun avis reçu pour le moment.</p>
             </div>
           ) : (
             <div className="grid gap-3">
               {reviewsReceived.map((r) => (
-                <div key={r.id} className="rounded-2xl border border-white/[0.06] bg-[#111111] p-5">
+                <div key={r.id} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="font-bold text-sm">{r.agency_name || r.reviewer_username}</div>
+                    <div className="font-bold text-sm text-[#0a0a0a]">{r.agency_name || r.reviewer_username}</div>
                     <div className="flex gap-0.5">
                       {[1,2,3,4,5].map((s) => (
-                        <Star key={s} className={`h-4 w-4 ${s <= r.rating ? "text-amber-400 fill-amber-400" : "text-white/10 fill-white/10"}`} />
+                        <Star key={s} className={`h-4 w-4 ${s <= r.rating ? "text-amber-400 fill-amber-400" : "text-gray-200 fill-gray-200"}`} />
                       ))}
                     </div>
                   </div>
-                  {r.comment && <p className="text-sm text-white/50">{r.comment}</p>}
-                  <div className="text-xs text-white/25 mt-2">{new Date(r.created_at).toLocaleDateString("fr-FR")}</div>
+                  {r.comment && <p className="text-sm text-gray-500">{r.comment}</p>}
+                  <div className="text-xs text-gray-400 mt-2">{new Date(r.created_at).toLocaleDateString("fr-FR")}</div>
                 </div>
               ))}
             </div>
@@ -241,18 +241,18 @@ export default function ProfilePage() {
   );
 }
 
-function DarkInfoRow({ icon, label, value, fromKyc }: {
+function InfoRow({ icon, label, value, fromKyc }: {
   icon: React.ReactNode; label: string; value: string; fromKyc?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-      <span className="text-white/30 shrink-0">{icon}</span>
+    <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 border border-gray-100">
+      <span className="text-gray-400 shrink-0">{icon}</span>
       <div className="flex-1 min-w-0">
-        <div className="text-[10px] font-bold uppercase text-white/30 tracking-widest">{label}</div>
-        <div className="font-semibold text-sm truncate">{value}</div>
+        <div className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">{label}</div>
+        <div className="font-semibold text-sm text-[#0a0a0a] truncate">{value}</div>
       </div>
       {fromKyc && (
-        <span className="shrink-0 text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full px-2 py-0.5 font-bold">KYC</span>
+        <span className="shrink-0 text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2 py-0.5 font-bold">KYC</span>
       )}
     </div>
   );

@@ -59,32 +59,32 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#080808] text-white flex items-center justify-center px-5 py-10">
+    <main className="min-h-screen bg-[#f8f9fb] flex items-center justify-center px-5 py-10">
       <div className="w-full max-w-md">
 
         {/* Logo */}
         <div className="text-center mb-10">
           <Link href="/" className="inline-flex items-center gap-2.5">
-            <div className="h-11 w-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-xl">L</div>
-            <span className="font-black text-2xl">Luggo</span>
+            <div className="h-11 w-11 rounded-2xl bg-[#2563eb] text-white flex items-center justify-center font-black text-xl">L</div>
+            <span className="font-black text-2xl text-[#0a0a0a]">Luggo</span>
           </Link>
         </div>
 
-        <div className="rounded-3xl bg-[#111111] border border-white/[0.06] p-7 md:p-8">
-          <h1 className="text-2xl font-black tracking-tight mb-1">Inscription</h1>
-          <p className="text-white/45 text-sm mb-7">Choisis ton type de compte et c'est parti.</p>
+        <div className="rounded-3xl bg-white border border-gray-100 shadow-sm p-7 md:p-8">
+          <h1 className="text-2xl font-black tracking-tight mb-1 text-[#0a0a0a]">Inscription</h1>
+          <p className="text-gray-500 text-sm mb-7">Choisis ton type de compte et c'est parti.</p>
 
           <form onSubmit={handleRegister} className="space-y-4">
 
             {/* Role selector */}
-            <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-white/[0.04] border border-white/[0.06]">
+            <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-gray-50 border border-gray-200">
               <button
                 type="button"
                 onClick={() => setRole("CLIENT")}
                 className={`rounded-xl px-4 py-3 text-sm font-bold flex items-center justify-center gap-2 transition ${
                   role === "CLIENT"
-                    ? "bg-blue-600 text-white shadow-lg"
-                    : "text-white/50 hover:text-white"
+                    ? "bg-[#2563eb] text-white shadow-md shadow-blue-200"
+                    : "text-gray-500 hover:text-[#0a0a0a]"
                 }`}
               >
                 <User className="h-4 w-4" />
@@ -95,8 +95,8 @@ export default function RegisterPage() {
                 onClick={() => setRole("AGENCY")}
                 className={`rounded-xl px-4 py-3 text-sm font-bold flex items-center justify-center gap-2 transition ${
                   role === "AGENCY"
-                    ? "bg-emerald-600 text-white shadow-lg"
-                    : "text-white/50 hover:text-white"
+                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-200"
+                    : "text-gray-500 hover:text-[#0a0a0a]"
                 }`}
               >
                 <Building2 className="h-4 w-4" />
@@ -104,43 +104,44 @@ export default function RegisterPage() {
               </button>
             </div>
 
-            <DarkField icon={<User className="h-4 w-4" />} label="Nom d'utilisateur" value={username} onChange={setUsername} placeholder="wadie" />
-            <DarkField icon={<Mail className="h-4 w-4" />} label="Email" type="email" value={email} onChange={setEmail} placeholder="wadie@email.com" />
-            <DarkField icon={<Lock className="h-4 w-4" />} label="Mot de passe" type="password" value={password} onChange={setPassword} placeholder="••••••••" />
+            <LightField icon={<User className="h-4 w-4" />} label="Nom d'utilisateur" value={username} onChange={setUsername} placeholder="wadie" />
+            <LightField icon={<Mail className="h-4 w-4" />} label="Email" type="email" value={email} onChange={setEmail} placeholder="wadie@email.com" />
+            <LightField icon={<Lock className="h-4 w-4" />} label="Mot de passe" type="password" value={password} onChange={setPassword} placeholder="••••••••" />
 
             {errorMsg && (
-              <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
+              <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
                 {errorMsg}
               </div>
             )}
             {apiErrors && (
-              <pre className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 text-xs text-white/50 overflow-auto">
+              <pre className="rounded-xl bg-gray-50 border border-gray-200 p-3 text-xs text-gray-600 overflow-auto">
                 {JSON.stringify(apiErrors, null, 2)}
               </pre>
             )}
 
             <button
               disabled={loading}
-              className={`w-full mt-1 px-4 py-3.5 rounded-2xl font-bold text-sm transition shadow-lg disabled:opacity-50 ${
+              className={`w-full mt-1 px-4 py-3.5 rounded-full font-bold text-sm transition shadow-lg disabled:opacity-50 text-white ${
                 role === "AGENCY"
-                  ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/40"
-                  : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/40"
+                  ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
+                  : "hover:bg-blue-700 shadow-blue-200"
               }`}
+              style={role !== "AGENCY" ? { backgroundColor: "#2563eb" } : {}}
               type="submit"
             >
               {loading ? "Création..." : "Créer mon compte"}
             </button>
           </form>
 
-          <div className="mt-7 text-center text-sm text-white/40">
+          <div className="mt-7 text-center text-sm text-gray-500">
             Déjà un compte ?{" "}
-            <Link href="/login" className="text-blue-400 hover:text-blue-300 font-semibold transition">
+            <Link href="/login" className="text-[#2563eb] hover:text-blue-700 font-semibold transition">
               Se connecter
             </Link>
           </div>
         </div>
 
-        <p className="text-center text-xs text-white/20 mt-6">
+        <p className="text-center text-xs text-gray-400 mt-6">
           © {new Date().getFullYear()} Luggo.ma — Tous droits réservés.
         </p>
       </div>
@@ -148,7 +149,7 @@ export default function RegisterPage() {
   );
 }
 
-function DarkField({
+function LightField({
   label, value, onChange, placeholder, type = "text", icon,
 }: {
   label: string; value: string; onChange: (v: string) => void;
@@ -156,12 +157,12 @@ function DarkField({
 }) {
   return (
     <label className="block space-y-1.5">
-      <span className="text-xs font-semibold uppercase text-white/35 tracking-widest">{label}</span>
-      <div className="flex items-center gap-2 rounded-xl bg-white/[0.04] border border-white/[0.08] px-3.5 py-3 focus-within:border-blue-500/50 focus-within:bg-white/[0.06] transition">
-        <span className="text-white/25">{icon}</span>
+      <span className="text-xs font-semibold uppercase text-gray-500 tracking-widest">{label}</span>
+      <div className="flex items-center gap-2 rounded-xl bg-gray-50 border border-gray-200 px-3.5 py-3 focus-within:border-[#2563eb]/50 focus-within:bg-white transition">
+        <span className="text-gray-400">{icon}</span>
         <input
           type={type}
-          className="w-full outline-none text-sm text-white bg-transparent placeholder:text-white/20"
+          className="w-full outline-none text-sm text-[#0a0a0a] bg-transparent placeholder:text-gray-400"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}

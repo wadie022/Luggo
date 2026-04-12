@@ -13,7 +13,6 @@ import { getAccessToken, getRole } from "@/lib/api";
 export default function HomePage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
-  const [activeTab, setActiveTab] = useState<"clients" | "agencies">("clients");
 
   useEffect(() => {
     const token = getAccessToken();
@@ -129,33 +128,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Bottom tabs */}
-        <div className="absolute bottom-0 left-0 right-0 z-10">
-          <div className="mx-auto max-w-6xl px-5">
-            <div className="inline-flex rounded-t-2xl overflow-hidden border border-white/10 backdrop-blur-md bg-white/10">
-              <button
-                onClick={() => setActiveTab("clients")}
-                className={`px-8 py-3.5 text-sm font-bold transition ${
-                  activeTab === "clients"
-                    ? "bg-white text-[#2563eb]"
-                    : "text-white/70 hover:text-white hover:bg-white/10"
-                }`}
-              >
-                Pour les clients
-              </button>
-              <button
-                onClick={() => setActiveTab("agencies")}
-                className={`px-8 py-3.5 text-sm font-bold transition ${
-                  activeTab === "agencies"
-                    ? "bg-white text-[#2563eb]"
-                    : "text-white/70 hover:text-white hover:bg-white/10"
-                }`}
-              >
-                Pour les agences
-              </button>
-            </div>
-          </div>
-        </div>
       </section>
 
       {/* ── HOW IT WORKS ── */}
@@ -171,7 +143,7 @@ export default function HomePage() {
           <div className="grid md:grid-cols-2 gap-10">
 
             {/* Pour les clients */}
-            <div className={`rounded-3xl bg-white p-8 shadow-sm border-2 transition ${activeTab === "clients" ? "border-[#2563eb]" : "border-transparent"}`}>
+            <div className="rounded-3xl bg-white p-8 shadow-sm border border-gray-100 transition hover:border-[#2563eb]/30 hover:shadow-md">
               <div className="flex items-center gap-3 mb-6">
                 <div className="h-10 w-10 rounded-full bg-[#2563eb] flex items-center justify-center">
                   <Users className="h-5 w-5 text-white" />
@@ -202,7 +174,7 @@ export default function HomePage() {
             </div>
 
             {/* Pour les agences */}
-            <div className={`rounded-3xl bg-white p-8 shadow-sm border-2 transition ${activeTab === "agencies" ? "border-[#2563eb]" : "border-transparent"}`}>
+            <div className="rounded-3xl bg-white p-8 shadow-sm border border-gray-100 transition hover:border-[#2563eb]/30 hover:shadow-md">
               <div className="flex items-center gap-3 mb-6">
                 <div className="h-10 w-10 rounded-full bg-[#2563eb] flex items-center justify-center">
                   <Building2 className="h-5 w-5 text-white" />
