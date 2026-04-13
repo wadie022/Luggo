@@ -100,6 +100,11 @@ function AgencyMessagesContent() {
 
   function handleLogout() { logout(); router.replace("/login"); }
 
+  const loadConvs = useCallback(() => {
+    fetch(`${API_BASE}/conversations/`, { headers: authHeader() })
+      .then(r => r.ok ? r.json() : []).then(data => { if (Array.isArray(data)) setConvs(data); }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     const convParam = searchParams.get("conv");
     if (convParam) { setSelectedId(Number(convParam)); setShowThread(true); }
@@ -107,16 +112,12 @@ function AgencyMessagesContent() {
       if (u.role !== "AGENCY") { router.replace("/trips"); return; }
       setMe({ id: u.id, username: u.username });
     }).catch(() => router.replace("/login"));
-  }, [router, searchParams]);
-
-  const loadConvs = useCallback(() => {
-    fetch(`${API_BASE}/conversations/`, { headers: authHeader() })
-      .then(r => r.json()).then(setConvs).catch(() => {});
-  }, []);
+    // Charger les convs immédiatement sans attendre me
+    loadConvs();
+  }, [router, searchParams, loadConvs]);
 
   useEffect(() => {
     if (!me) return;
-    loadConvs();
     const iv = setInterval(loadConvs, 5000);
     return () => clearInterval(iv);
   }, [me, loadConvs]);

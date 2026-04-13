@@ -299,8 +299,30 @@ function TripCard({ trip, allShipments, onDelete, onShipmentStatusChange, expand
 }) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [deleteErr, setDeleteErr] = useState<string | null>(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkMsg, setBulkMsg] = useState<string | null>(null);
   const isExpanded = expandedTripId === trip.id;
   const shipments = allShipments.filter(s => s.trip_summary?.id === trip.id);
+
+  async function bulkStatus(newStatus: string) {
+    if (!confirm(`Marquer TOUS les colis de ce trajet comme "${newStatus}" ?`)) return;
+    setBulkLoading(true); setBulkMsg(null);
+    try {
+      const res = await fetch(`${API_BASE}/agency/trips/${trip.id}/bulk-status/`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeader() },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBulkMsg(`✓ ${data.updated} colis mis à jour.`);
+        // Rafraîchir les shipments
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        setBulkMsg(data.detail || "Erreur.");
+      }
+    } finally { setBulkLoading(false); }
+  }
 
   async function handleDelete() {
     if (!confirm("Supprimer ce trajet définitivement ?")) return;
@@ -366,9 +388,19 @@ function TripCard({ trip, allShipments, onDelete, onShipmentStatusChange, expand
               className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 text-sm font-bold transition">
               {isExpanded ? <><ChevronUp className="h-4 w-4" /> Masquer</> : <><ChevronDown className="h-4 w-4" /> Demandes ({shipments.length})</>}
             </button>
+            {/* Boutons bulk */}
+            <button onClick={() => bulkStatus("IN_TRANSIT")} disabled={bulkLoading}
+              className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 text-xs font-bold disabled:opacity-50 transition">
+              🚚 Tous en transit
+            </button>
+            <button onClick={() => bulkStatus("ARRIVED")} disabled={bulkLoading}
+              className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 hover:bg-teal-100 text-xs font-bold disabled:opacity-50 transition">
+              📦 Tous arrivés
+            </button>
           </div>
         </div>
         {deleteErr && <p className="mt-3 text-sm text-red-600">{deleteErr}</p>}
+        {bulkMsg && <p className="mt-2 text-sm font-medium text-indigo-700">{bulkMsg}</p>}
       </div>
 
       {isExpanded && (

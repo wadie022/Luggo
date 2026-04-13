@@ -106,6 +106,11 @@ function MessagesContent() {
 
   function handleLogout() { logout(); router.replace("/login"); }
 
+  const loadConvs = useCallback(() => {
+    fetch(`${API_BASE}/conversations/`, { headers: authHeader() })
+      .then(r => r.ok ? r.json() : []).then(data => { if (Array.isArray(data)) setConvs(data); }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     const agencyParam = searchParams.get("agency");
     const nameParam = searchParams.get("name");
@@ -116,16 +121,12 @@ function MessagesContent() {
       if (u.role !== "CLIENT") { router.replace("/trips"); return; }
       setMe({ id: u.id, username: u.username });
     }).catch(() => router.replace("/login"));
-  }, [router, searchParams]);
-
-  const loadConvs = useCallback(() => {
-    fetch(`${API_BASE}/conversations/`, { headers: authHeader() })
-      .then(r => r.json()).then(setConvs).catch(() => {});
-  }, []);
+    // Charger les convs immédiatement sans attendre me
+    loadConvs();
+  }, [router, searchParams, loadConvs]);
 
   useEffect(() => {
     if (!me) return;
-    loadConvs();
     const iv = setInterval(loadConvs, 5000);
     return () => clearInterval(iv);
   }, [me, loadConvs]);

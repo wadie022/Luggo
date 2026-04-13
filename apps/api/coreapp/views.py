@@ -237,6 +237,8 @@ class TripListView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        # Exclure les trajets dont la date de départ est passée
+        qs = qs.filter(departure_at__gt=timezone.now())
         o = self.request.query_params.get("origin_country")
         d = self.request.query_params.get("dest_country")
         if o:
@@ -1046,6 +1048,66 @@ class AgencyTripEditView(APIView):
 
         trip.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AgencyTripBulkStatusView(APIView):
+    """
+    PATCH /api/agency/trips/<id>/bulk-status/
+    body: { "status": "IN_TRANSIT" | "ARRIVED" | "DELIVERED" }
+    Met à jour tous les colis ACCEPTED/IN_TRANSIT/ARRIVED du trajet en une fois.
+    """
+    permission_classes = [IsAuthenticated, IsAgency]
+
+    TRANSITIONS = {
+        "IN_TRANSIT": ["ACCEPTED", "DEPOSITED"],
+        "ARRIVED":    ["IN_TRANSIT"],
+        "DELIVERED":  ["ARRIVED"],
+    }
+
+    def patch(self, request, pk):
+        agency = getattr(request.user, "agency", None)
+        if agency is None:
+            return Response({"detail": "Aucune agence liée."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            trip = Trip.objects.get(pk=pk, agency=agency)
+        except Trip.DoesNotExist:
+            return Response({"detail": "Trajet introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        new_status = (request.data.get("status") or "").upper()
+        allowed_from = self.TRANSITIONS.get(new_status)
+        if not allowed_from:
+            return Response({"detail": f"Statut invalide. Valeurs acceptées : {list(self.TRANSITIONS.keys())}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        shipments = Shipment.objects.filter(trip=trip, status__in=allowed_from)
+        count = shipments.count()
+        if count == 0:
+            return Response({"detail": "Aucun colis à mettre à jour."}, status=status.HTTP_400_BAD_REQUEST)
+
+        shipments.update(status=new_status)
+
+        # Notifications aux clients
+        EMAIL_FNS = {
+            "IN_TRANSIT": send_shipment_in_transit,
+            "ARRIVED":    send_shipment_arrived,
+            "DELIVERED":  send_shipment_delivered,
+        }
+        NOTIF_TITLES = {
+            "IN_TRANSIT": "Colis en transit 🚀",
+            "ARRIVED":    "Colis arrivé 📦",
+            "DELIVERED":  "Colis livré ✅",
+        }
+        route = f"{trip.origin_city} ({trip.origin_country}) → {trip.dest_city} ({trip.dest_country})"
+        email_fn = EMAIL_FNS.get(new_status)
+        notif_title = NOTIF_TITLES.get(new_status, "Mise à jour colis")
+
+        for sh in Shipment.objects.filter(trip=trip, status=new_status).select_related('user'):
+            if email_fn:
+                try: email_fn(sh.customer_email, sh.customer_name, route)
+                except Exception: pass
+            if sh.user:
+                notify(sh.user, notif_title, f"Ton colis sur {route} est maintenant : {new_status}", "/mes-colis")
+
+        return Response({"updated": count, "new_status": new_status})
 
 
 class ShipmentClientView(APIView):
