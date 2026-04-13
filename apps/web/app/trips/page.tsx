@@ -69,7 +69,9 @@ export default function TripsPage() {
       if (params.length > 0) url += "?" + params.join("&");
       const res = await fetch(url);
       if (!res.ok) throw new Error(`Erreur API: ${res.status}`);
-      setTrips(await res.json());
+      const now = new Date();
+      const all: Trip[] = await res.json();
+      setTrips(all.filter((t) => new Date(t.departure_at) > now));
     } catch (err: any) {
       setError(err.message ?? "Erreur inconnue");
     } finally {
