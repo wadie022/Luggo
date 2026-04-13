@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='payment',
             name='created_at',
-            field=models.DateTimeField(auto_now_add=True, default=django.utils.timezone.now),
+            field=models.DateTimeField(auto_now_add=True, default=django.utils.timezone.now, null=True),
             preserve_default=False,
         ),
     ]
