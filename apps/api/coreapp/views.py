@@ -226,6 +226,26 @@ class TripDetailView(generics.RetrieveAPIView):
     permission_classes = [permissions.AllowAny]
 
 
+def _auto_delete_trip(trip):
+    """
+    Supprime un trajet (et ses colis en cascade) si :
+    - la date de départ est dépassée, OU
+    - les kg acceptés atteignent ou dépassent la capacité max.
+    Retourne True si le trajet a été supprimé.
+    """
+    if timezone.now() >= trip.departure_at:
+        trip.delete()
+        return True
+    used_kg = (
+        Shipment.objects.filter(trip=trip, status="ACCEPTED")
+        .aggregate(v=Coalesce(Sum("weight_kg"), 0.0))["v"]
+    )
+    if used_kg >= trip.capacity_kg:
+        trip.delete()
+        return True
+    return False
+
+
 class TripListView(generics.ListCreateAPIView):
     queryset = Trip.objects.all().order_by("departure_at")
     serializer_class = TripSerializer
@@ -236,9 +256,10 @@ class TripListView(generics.ListCreateAPIView):
         return [permissions.IsAuthenticated(), IsAgency()]
 
     def get_queryset(self):
+        # Supprimer les trajets expirés avant de lister
+        Trip.objects.filter(departure_at__lte=timezone.now()).delete()
+
         qs = super().get_queryset()
-        # Exclure les trajets dont la date de départ est passée
-        qs = qs.filter(departure_at__gt=timezone.now())
         o = self.request.query_params.get("origin_country")
         d = self.request.query_params.get("dest_country")
         if o:
@@ -1230,6 +1251,10 @@ class ShipmentTrackingView(APIView):
             if msg:
                 notify(sh.user, msg[0], msg[1], "/mes-colis")
 
+        # Supprimer le trajet si kg max atteints
+        if new_status == "ACCEPTED":
+            _auto_delete_trip(t)
+
         return Response(ShipmentSerializer(sh).data)
 
 
@@ -1306,6 +1331,10 @@ class AgencyShipmentStatusView(APIView):
                 notify(u, "Colis refusé — remboursé ❌", f"Ta demande sur {route} a été refusée. Tu seras remboursé sous 5-10 jours.", "/mes-colis")
             except Exception:
                 pass
+
+        # Supprimer le trajet si kg max atteints
+        if new_status == "ACCEPTED":
+            _auto_delete_trip(t)
 
         return Response(AgencyShipmentSerializer(sh).data, status=status.HTTP_200_OK)
 
