@@ -15,6 +15,7 @@ type Trip = {
   departure_at: string;
   arrival_eta: string;
   price_per_kg: number;
+  home_delivery_price: number;
 };
 
 type ShipmentResponse = {
@@ -78,8 +79,9 @@ export default function BookShipmentPage() {
     }, 350);
   }
 
-  const estimatedPrice =
-    trip && weightKg ? Number(weightKg) * Number(trip.price_per_kg || 0) : null;
+  const basePrice = trip && weightKg ? Number(weightKg) * Number(trip.price_per_kg || 0) : null;
+  const deliveryFee = trip && deliveryType === "HOME_DELIVERY" ? Number(trip.home_delivery_price || 0) : 0;
+  const estimatedPrice = basePrice !== null ? basePrice + deliveryFee : null;
 
   const role = typeof window === "undefined" ? null : getRole();
 
@@ -432,12 +434,24 @@ export default function BookShipmentPage() {
             <div className="flex flex-col gap-4">
               <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-5">
                 <div className="text-sm font-bold text-slate-900 mb-3">Estimation du prix</div>
-                <div className="rounded-2xl bg-blue-50 border border-blue-100 px-4 py-4 text-center">
-                  <div className="text-xs text-slate-500 mb-1">Pour {weightKg} kg</div>
-                  <div className="text-3xl font-extrabold text-blue-700">
-                    {estimatedPrice !== null ? `${estimatedPrice.toFixed(2)} €` : "—"}
+                <div className="rounded-2xl bg-blue-50 border border-blue-100 px-4 py-4">
+                  <div className="flex justify-between text-sm text-slate-600 mb-1">
+                    <span>Transport ({weightKg} kg)</span>
+                    <span>{basePrice !== null ? `${basePrice.toFixed(2)} €` : "—"}</span>
                   </div>
-                  <div className="text-xs text-slate-400 mt-1">{trip.price_per_kg} €/kg × {weightKg} kg</div>
+                  {deliveryType === "HOME_DELIVERY" && (
+                    <div className="flex justify-between text-sm text-slate-600 mb-1">
+                      <span>Livraison à domicile</span>
+                      <span>{deliveryFee > 0 ? `${deliveryFee.toFixed(2)} €` : "Offert"}</span>
+                    </div>
+                  )}
+                  <div className="border-t border-blue-200 mt-2 pt-2 flex justify-between items-center">
+                    <span className="text-sm font-semibold text-slate-700">Total</span>
+                    <span className="text-2xl font-extrabold text-blue-700">
+                      {estimatedPrice !== null ? `${estimatedPrice.toFixed(2)} €` : "—"}
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-400 mt-1 text-right">{trip.price_per_kg} €/kg × {weightKg} kg</div>
                 </div>
               </div>
 

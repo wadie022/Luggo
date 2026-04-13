@@ -14,6 +14,7 @@ type TripPayload = {
   arrival_eta?: string | null; // ISO
   capacity_kg: number;
   price_per_kg: number;
+  home_delivery_price: number;
   status?: string;
 };
 
@@ -31,6 +32,7 @@ export default function Page() {
   const [arrivalEta, setArrivalEta] = useState(""); // datetime-local (optional)
   const [capacityKg, setCapacityKg] = useState<number>(20);
   const [pricePerKg, setPricePerKg] = useState<number>(5);
+  const [homeDeliveryPrice, setHomeDeliveryPrice] = useState<number>(0);
   const [status, setStatus] = useState<"PUBLISHED" | "CLOSED">("PUBLISHED");
 
   const [submitting, setSubmitting] = useState(false);
@@ -129,6 +131,7 @@ export default function Page() {
         arrival_eta: arrivalEta ? toISO(arrivalEta) : null,
         capacity_kg: Number(capacityKg),
         price_per_kg: Number(pricePerKg),
+        home_delivery_price: Number(homeDeliveryPrice),
         status,
       };
 
@@ -293,6 +296,18 @@ export default function Page() {
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
+              </Field>
+
+              <Field label="Frais livraison à domicile (€)">
+                <input
+                  type="number"
+                  min={0}
+                  step={0.5}
+                  value={homeDeliveryPrice}
+                  onChange={(e) => setHomeDeliveryPrice(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="mt-1 text-xs text-slate-400">Mettre 0 si la livraison à domicile n'est pas proposée.</p>
               </Field>
 
               <div className="md:col-span-2">

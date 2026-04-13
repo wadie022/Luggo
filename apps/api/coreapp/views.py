@@ -1596,7 +1596,9 @@ class PaymentCreateIntentView(APIView):
             return Response({"detail": "Colis introuvable."}, status=status.HTTP_404_NOT_FOUND)
 
         # Calcul du montant
-        amount_cents = int(shipment.weight_kg * shipment.trip.price_per_kg * 100)
+        base_cents = int(shipment.weight_kg * shipment.trip.price_per_kg * 100)
+        delivery_cents = int(shipment.trip.home_delivery_price * 100) if shipment.delivery_type == "HOME_DELIVERY" else 0
+        amount_cents = base_cents + delivery_cents
         fee_cents = int(amount_cents * 0.05)  # 5% commission plateforme
 
         # Récupérer ou créer le Payment
@@ -1639,6 +1641,8 @@ class PaymentCreateIntentView(APIView):
         return Response({
             'client_secret': client_secret,
             'amount_cents': amount_cents,
+            'base_cents': base_cents,
+            'delivery_cents': delivery_cents,
             'fee_cents': fee_cents,
             'currency': 'EUR',
             'payment_id': payment.id,

@@ -123,6 +123,7 @@ class Trip(models.Model):
     arrival_eta = models.DateTimeField(null=True, blank=True)  # estimation d'arrivée
     capacity_kg = models.FloatField()                 # capacité acceptée (kg)
     price_per_kg = models.FloatField()                # prix au kilo
+    home_delivery_price = models.FloatField(default=0.0)  # frais livraison à domicile (0 = non proposé)
     status = models.CharField(max_length=20, default='PUBLISHED')  # PUBLISHED/CLOSED
 
     def __str__(self):
