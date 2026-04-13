@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, fetchMe, authHeader } from "@/lib/api";
 
@@ -37,8 +37,9 @@ export default function Page() {
   const [success, setSuccess] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [apiErrors, setApiErrors] = useState<any>(null);
-  const [locationDetected, setLocationDetected] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
+  const [citySuggestions, setCitySuggestions] = useState<{ name: string; country: string }[]>([]);
+  const [citySearching, setCitySearching] = useState(false);
+  const cityDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // boot check (must be agency)
   useEffect(() => {
@@ -58,29 +59,34 @@ export default function Page() {
     })();
   }, [router]);
 
-  // Détection automatique de la ville d'origine
-  useEffect(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const { latitude, longitude } = pos.coords;
-          const res = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=fr`
-          );
-          const data = await res.json();
-          const city = data.city || data.locality || data.principalSubdivision || "";
-          const country = data.countryCode || "";
-          if (city) setOriginCity(city);
-          if (country) setOriginCountry(country);
-          setLocationDetected(true);
-        } catch {
-          setLocationError("Impossible de détecter la ville.");
+  async function searchCity(query: string) {
+    setOriginCity(query);
+    if (cityDebounce.current) clearTimeout(cityDebounce.current);
+    if (query.length < 2) { setCitySuggestions([]); return; }
+    cityDebounce.current = setTimeout(async () => {
+      setCitySearching(true);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=6&addressdetails=1&featuretype=city`,
+          { headers: { "Accept-Language": "fr" } }
+        );
+        const data = await res.json();
+        const seen = new Set<string>();
+        const results: { name: string; country: string }[] = [];
+        for (const r of data) {
+          const city = r.address?.city || r.address?.town || r.address?.village || r.address?.municipality || r.name;
+          const country = r.address?.country_code?.toUpperCase() || "";
+          const key = `${city}-${country}`;
+          if (city && !seen.has(key)) { seen.add(key); results.push({ name: city, country }); }
         }
-      },
-      () => setLocationError("Géolocalisation refusée.")
-    );
-  }, []);
+        setCitySuggestions(results);
+      } catch {
+        setCitySuggestions([]);
+      } finally {
+        setCitySearching(false);
+      }
+    }, 350);
+  }
 
   function toISO(dtLocal: string) {
     return dtLocal ? new Date(dtLocal).toISOString() : "";
@@ -192,19 +198,37 @@ export default function Page() {
               </Field>
 
               <Field label="Ville d'origine">
-                <input
-                  value={originCity}
-                  onChange={(e) => { setOriginCity(e.target.value); setLocationDetected(false); }}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Paris"
-                  required
-                />
-                {locationDetected && (
-                  <p className="mt-1 text-xs text-emerald-600 font-medium">📍 Détectée automatiquement</p>
-                )}
-                {locationError && (
-                  <p className="mt-1 text-xs text-slate-400">{locationError}</p>
-                )}
+                <div className="relative">
+                  <input
+                    value={originCity}
+                    onChange={(e) => searchCity(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Paris"
+                    autoComplete="off"
+                    required
+                  />
+                  {citySearching && (
+                    <p className="mt-1 text-xs text-blue-400">Recherche…</p>
+                  )}
+                  {citySuggestions.length > 0 && (
+                    <ul className="absolute z-20 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+                      {citySuggestions.map((s, i) => (
+                        <li
+                          key={i}
+                          onClick={() => {
+                            setOriginCity(s.name);
+                            if (s.country) setOriginCountry(s.country);
+                            setCitySuggestions([]);
+                          }}
+                          className="px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 cursor-pointer border-b border-slate-100 last:border-0 flex items-center justify-between"
+                        >
+                          <span>{s.name}</span>
+                          <span className="text-xs text-slate-400 font-semibold">{s.country}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </Field>
 
               <Field label="Pays de destination (ISO)">
