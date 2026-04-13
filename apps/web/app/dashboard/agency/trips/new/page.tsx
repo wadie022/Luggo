@@ -37,6 +37,8 @@ export default function Page() {
   const [success, setSuccess] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [apiErrors, setApiErrors] = useState<any>(null);
+  const [locationDetected, setLocationDetected] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   // boot check (must be agency)
   useEffect(() => {
@@ -55,6 +57,30 @@ export default function Page() {
       }
     })();
   }, [router]);
+
+  // Détection automatique de la ville d'origine
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const res = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=fr`
+          );
+          const data = await res.json();
+          const city = data.city || data.locality || data.principalSubdivision || "";
+          const country = data.countryCode || "";
+          if (city) setOriginCity(city);
+          if (country) setOriginCountry(country);
+          setLocationDetected(true);
+        } catch {
+          setLocationError("Impossible de détecter la ville.");
+        }
+      },
+      () => setLocationError("Géolocalisation refusée.")
+    );
+  }, []);
 
   function toISO(dtLocal: string) {
     return dtLocal ? new Date(dtLocal).toISOString() : "";
@@ -168,11 +194,17 @@ export default function Page() {
               <Field label="Ville d'origine">
                 <input
                   value={originCity}
-                  onChange={(e) => setOriginCity(e.target.value)}
+                  onChange={(e) => { setOriginCity(e.target.value); setLocationDetected(false); }}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Paris"
                   required
                 />
+                {locationDetected && (
+                  <p className="mt-1 text-xs text-emerald-600 font-medium">📍 Détectée automatiquement</p>
+                )}
+                {locationError && (
+                  <p className="mt-1 text-xs text-slate-400">{locationError}</p>
+                )}
               </Field>
 
               <Field label="Pays de destination (ISO)">
