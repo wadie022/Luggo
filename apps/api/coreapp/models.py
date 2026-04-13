@@ -256,6 +256,7 @@ class Payment(models.Model):
     fee_platform_cents = models.IntegerField(default=0)  # commission plateforme (centimes)
     stripe_pi = models.CharField(max_length=120, blank=True)  # id PaymentIntent Stripe (quand on l'ajoutera)
     status = models.CharField(max_length=20, default='REQUIRES_ACTION')  # REQUIRES_ACTION/SUCCEEDED/FAILED/REFUNDED
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
 
     def __str__(self):
         return f"Payment for Shipment #{self.shipment_id} - {self.status}"

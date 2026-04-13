@@ -14,7 +14,8 @@ from .views import (
     AgencyTripsView, AgencyTripEditView, AgencyShipmentsView, AgencyShipmentStatusView, AgencyStatsView,
     AgencyProfileView, AgencyBranchView, AgencyBranchDetailView, ShipmentTrackingView,
     ReviewView, PublicAgencyBranchesView,
-    ConversationView, MessageListView, ConversationReadView
+    ConversationView, MessageListView, ConversationReadView,
+    PaymentCreateIntentView, PaymentStatusView, PaymentWebhookView
 )
 
 urlpatterns = [
@@ -78,4 +79,9 @@ urlpatterns = [
     path("conversations/", ConversationView.as_view(), name="conversations"),
     path("conversations/<int:pk>/messages/", MessageListView.as_view(), name="conversation-messages"),
     path("conversations/<int:pk>/read/", ConversationReadView.as_view(), name="conversation-read"),
+
+    # Payments
+    path("payments/create-intent/", PaymentCreateIntentView.as_view(), name="payment-create-intent"),
+    path("payments/webhook/", PaymentWebhookView.as_view(), name="payment-webhook"),
+    path("payments/<int:shipment_id>/", PaymentStatusView.as_view(), name="payment-status"),
 ]

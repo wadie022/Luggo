@@ -17,7 +17,7 @@ import mimetypes
 import re as _re
 from django.utils import timezone
 
-from .models import Trip, Shipment, KYCDocument, AgencyDocument, Notification, Reclamation, AgencyBranch, Review, Conversation, Message
+from .models import Trip, Shipment, KYCDocument, AgencyDocument, Notification, Reclamation, AgencyBranch, Review, Conversation, Message, Payment
 from .serializers import (
     RegisterSerializer, TripSerializer, ShipmentSerializer, MeSerializer,
     AgencyTripSerializer, AgencyShipmentSerializer, KYCDocumentSerializer,
@@ -1467,4 +1467,148 @@ class ConversationReadView(APIView):
             return Response({"detail": "Conversation introuvable."}, status=status.HTTP_404_NOT_FOUND)
         _check_conv_access(request.user, conv)
         conv.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+        return Response({"ok": True})
+
+
+# ─── PAYMENT ──────────────────────────────────────────────────────────────────
+
+import stripe as _stripe
+
+_stripe.api_key = os.getenv('STRIPE_SECRET_KEY', '')
+
+
+class PaymentCreateIntentView(APIView):
+    """POST /payments/create-intent/ — crée un PaymentIntent Stripe pour un colis."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        shipment_id = request.data.get('shipment_id')
+        if not shipment_id:
+            return Response({"detail": "shipment_id requis."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            shipment = Shipment.objects.get(pk=shipment_id, user=request.user)
+        except Shipment.DoesNotExist:
+            return Response({"detail": "Colis introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Calcul du montant
+        amount_cents = int(shipment.weight_kg * shipment.trip.price_per_kg * 100)
+        fee_cents = int(amount_cents * 0.05)  # 5% commission plateforme
+
+        # Récupérer ou créer le Payment
+        payment, created = Payment.objects.get_or_create(
+            shipment=shipment,
+            defaults={
+                'amount_total_cents': amount_cents,
+                'fee_platform_cents': fee_cents,
+                'currency': 'EUR',
+                'status': 'REQUIRES_ACTION',
+            }
+        )
+
+        if payment.status == 'SUCCEEDED':
+            return Response({"detail": "Ce colis est déjà payé."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Créer ou réutiliser le PaymentIntent
+        if not payment.stripe_pi:
+            if not _stripe.api_key:
+                return Response({"detail": "Paiement non configuré (clé Stripe manquante)."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            pi = _stripe.PaymentIntent.create(
+                amount=amount_cents,
+                currency='EUR',
+                metadata={
+                    'shipment_id': shipment.id,
+                    'payment_id': payment.id,
+                    'user_id': request.user.id,
+                },
+                description=f"Luggo – Colis #{shipment.id} ({shipment.trip.origin_city} → {shipment.trip.dest_city})",
+            )
+            payment.stripe_pi = pi['id']
+            payment.save()
+            client_secret = pi['client_secret']
+        else:
+            if not _stripe.api_key:
+                return Response({"detail": "Paiement non configuré."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            pi = _stripe.PaymentIntent.retrieve(payment.stripe_pi)
+            client_secret = pi['client_secret']
+
+        return Response({
+            'client_secret': client_secret,
+            'amount_cents': amount_cents,
+            'fee_cents': fee_cents,
+            'currency': 'EUR',
+            'payment_id': payment.id,
+            'stripe_public_key': os.getenv('STRIPE_PUBLIC_KEY', ''),
+        })
+
+
+class PaymentStatusView(APIView):
+    """GET /payments/<shipment_id>/ — statut du paiement pour un colis."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, shipment_id):
+        try:
+            shipment = Shipment.objects.get(pk=shipment_id, user=request.user)
+        except Shipment.DoesNotExist:
+            return Response({"detail": "Colis introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            payment = Payment.objects.get(shipment=shipment)
+        except Payment.DoesNotExist:
+            return Response({"exists": False})
+
+        return Response({
+            "exists": True,
+            "status": payment.status,
+            "amount_total_cents": payment.amount_total_cents,
+            "currency": payment.currency,
+        })
+
+
+class PaymentWebhookView(APIView):
+    """POST /payments/webhook/ — endpoint Stripe webhook (non authentifié)."""
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        payload = request.body
+        sig_header = request.META.get('HTTP_STRIPE_SIGNATURE', '')
+        webhook_secret = os.getenv('STRIPE_WEBHOOK_SECRET', '')
+
+        if webhook_secret:
+            try:
+                event = _stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
+            except (_stripe.error.SignatureVerificationError, ValueError):
+                return Response({"detail": "Invalid signature."}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            try:
+                event = json.loads(payload)
+            except Exception:
+                return Response({"detail": "Invalid payload."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if event['type'] == 'payment_intent.succeeded':
+            pi_id = event['data']['object']['id']
+            try:
+                payment = Payment.objects.get(stripe_pi=pi_id)
+                payment.status = 'SUCCEEDED'
+                payment.save()
+                # Notifier le client
+                Notification.objects.create(
+                    user=payment.shipment.user,
+                    title="Paiement confirmé",
+                    message=f"Votre paiement pour le colis #{payment.shipment.id} a été confirmé.",
+                    link=f"/mes-colis/{payment.shipment.id}",
+                )
+            except Payment.DoesNotExist:
+                pass
+
+        elif event['type'] == 'payment_intent.payment_failed':
+            pi_id = event['data']['object']['id']
+            try:
+                payment = Payment.objects.get(stripe_pi=pi_id)
+                payment.status = 'FAILED'
+                payment.save()
+            except Payment.DoesNotExist:
+                pass
+
         return Response({"ok": True})

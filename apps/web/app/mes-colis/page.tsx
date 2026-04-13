@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, authHeader, fetchMe, logout } from "@/lib/api";
-import { Package, MapPin, ArrowRight, Clock, CheckCircle2, XCircle, Truck, Home, Building2, Search, Star } from "lucide-react";
+import { Package, MapPin, ArrowRight, Clock, CheckCircle2, XCircle, Truck, Home, Building2, Search, Star, CreditCard } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 
 type TripDetail = {
@@ -315,15 +315,24 @@ function ShipmentCard({ sh, onConfirmDeposit, actionLoading }: {
             Voir détails →
           </Link>
           {sh.status === "ACCEPTED" && (
-            <button
-              onClick={onConfirmDeposit}
-              disabled={actionLoading}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-bold transition shadow-md shadow-blue-200 hover:bg-blue-700 disabled:opacity-50"
-              style={{ backgroundColor: "#2563eb" }}
-            >
-              <Building2 className="h-4 w-4" />
-              {actionLoading ? "Confirmation…" : "Confirmer dépôt"}
-            </button>
+            <>
+              <Link
+                href={`/payment/${sh.id}`}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-bold transition shadow-md shadow-blue-200 text-center"
+                style={{ backgroundColor: "#2563eb" }}
+              >
+                <CreditCard className="h-4 w-4" />
+                Payer maintenant
+              </Link>
+              <button
+                onClick={onConfirmDeposit}
+                disabled={actionLoading}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700 disabled:opacity-50"
+              >
+                <Building2 className="h-4 w-4" />
+                {actionLoading ? "Confirmation…" : "Confirmer dépôt"}
+              </button>
+            </>
           )}
           {sh.status === "DELIVERED" && !reviewSent && (
             <button
