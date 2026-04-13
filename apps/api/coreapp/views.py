@@ -1472,9 +1472,11 @@ class ConversationReadView(APIView):
 
 # ─── PAYMENT ──────────────────────────────────────────────────────────────────
 
-import stripe as _stripe
-
-_stripe.api_key = os.getenv('STRIPE_SECRET_KEY', '')
+try:
+    import stripe as _stripe
+    _stripe.api_key = os.getenv('STRIPE_SECRET_KEY', '')
+except ImportError:
+    _stripe = None
 
 
 class PaymentCreateIntentView(APIView):
@@ -1511,7 +1513,7 @@ class PaymentCreateIntentView(APIView):
 
         # Créer ou réutiliser le PaymentIntent
         if not payment.stripe_pi:
-            if not _stripe.api_key:
+            if not _stripe or not _stripe.api_key:
                 return Response({"detail": "Paiement non configuré (clé Stripe manquante)."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             pi = _stripe.PaymentIntent.create(
                 amount=amount_cents,
@@ -1527,7 +1529,7 @@ class PaymentCreateIntentView(APIView):
             payment.save()
             client_secret = pi['client_secret']
         else:
-            if not _stripe.api_key:
+            if not _stripe or not _stripe.api_key:
                 return Response({"detail": "Paiement non configuré."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             pi = _stripe.PaymentIntent.retrieve(payment.stripe_pi)
             client_secret = pi['client_secret']

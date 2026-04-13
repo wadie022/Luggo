@@ -158,8 +158,9 @@ function PaymentContent() {
         if (data.stripe_public_key) {
           setStripePromise(loadStripe(data.stripe_public_key));
         }
-      } catch {
-        setErrorMsg("Erreur de connexion au serveur.");
+      } catch (err) {
+        console.error("Payment init error:", err);
+        setErrorMsg("Impossible de joindre le serveur. Vérifiez votre connexion.");
       }
       setLoading(false);
     }
