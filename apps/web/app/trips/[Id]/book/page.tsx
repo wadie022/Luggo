@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { API_BASE, authHeader, getAccessToken, getRole, logout, fetchMe } from "@/lib/api";
-import { ArrowLeft, Package, MapPin, Calendar, ArrowRight, Home, Building2 } from "lucide-react";
+import { ArrowLeft, Package, MapPin, Calendar, ArrowRight, Home, Building2, CreditCard } from "lucide-react";
 
 type Trip = {
   id: number;
@@ -132,7 +132,7 @@ export default function BookShipmentPage() {
       }
 
       setCreatedShipment(data);
-      setSuccessMsg("Demande envoyée ! L'agence te contactera pour confirmer.");
+      setSuccessMsg("Demande envoyée ! Procède au paiement pour confirmer ta réservation.");
     } catch (err: any) {
       setErrorMsg(err.message ?? "Erreur inconnue");
     } finally {
@@ -370,12 +370,17 @@ export default function BookShipmentPage() {
                       </Row>
                     )}
                   </div>
-                  <p className="mt-4 text-xs text-slate-500">
-                    L'agence examinera ta demande et te contactera à l'adresse{" "}
-                    <span className="font-semibold">{email}</span>.
-                    Tu peux suivre le statut sur{" "}
-                    <Link href="/mes-colis" className="text-blue-600 underline">Mes colis</Link>.
+                  <p className="mt-4 text-xs text-slate-500 mb-4">
+                    Ton paiement est nécessaire pour confirmer la réservation. L'agence n'examinera ta demande qu'après paiement.
                   </p>
+                  <Link
+                    href={`/payment/${createdShipment.id}`}
+                    className="flex items-center justify-center gap-2 w-full py-3 rounded-full text-white font-semibold text-sm"
+                    style={{ backgroundColor: "#2563eb" }}
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    Payer maintenant — {estimatedPrice !== null ? `${(estimatedPrice * 1.05).toFixed(2)} €` : "…"}
+                  </Link>
                 </div>
               )}
             </div>

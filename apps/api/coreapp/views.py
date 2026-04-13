@@ -1227,10 +1227,21 @@ class AgencyShipmentStatusView(APIView):
                 pass
         elif new_status == "REJECTED":
             send_shipment_rejected(sh.customer_email, sh.customer_name, route)
+            # Remboursement automatique Stripe si paiement existant
+            try:
+                payment = Payment.objects.get(shipment=sh, status='SUCCEEDED')
+                if _stripe and _stripe.api_key and payment.stripe_pi:
+                    _stripe.Refund.create(payment_intent=payment.stripe_pi)
+                    payment.status = 'REFUNDED'
+                    payment.save()
+            except Payment.DoesNotExist:
+                pass
+            except Exception:
+                pass
             try:
                 from .models import User as U
                 u = U.objects.get(email=sh.customer_email)
-                notify(u, "Colis refusé ❌", f"Ta demande sur {route} a été refusée.", "/trips")
+                notify(u, "Colis refusé — remboursé ❌", f"Ta demande sur {route} a été refusée. Tu seras remboursé sous 5-10 jours.", "/mes-colis")
             except Exception:
                 pass
 
