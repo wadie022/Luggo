@@ -80,7 +80,7 @@ export default function BookShipmentPage() {
   }
 
   const basePrice = trip && weightKg ? Number(weightKg) * Number(trip.price_per_kg || 0) : null;
-  const deliveryFee = trip && deliveryType === "HOME_DELIVERY" ? Number(trip.home_delivery_price || 0) : 0;
+  const deliveryFee = 0; // livraison offerte
   const estimatedPrice = basePrice !== null ? basePrice + deliveryFee : null;
 
   const role = typeof window === "undefined" ? null : getRole();

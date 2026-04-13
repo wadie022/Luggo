@@ -298,18 +298,6 @@ export default function Page() {
                 />
               </Field>
 
-              <Field label="Frais livraison à domicile (€)">
-                <input
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  value={homeDeliveryPrice}
-                  onChange={(e) => setHomeDeliveryPrice(Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="mt-1 text-xs text-slate-400">Mettre 0 si la livraison à domicile n'est pas proposée.</p>
-              </Field>
-
               <div className="md:col-span-2">
                 <label className="block text-xs font-semibold mb-1 uppercase text-slate-500">
                   Statut
