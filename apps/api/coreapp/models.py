@@ -226,10 +226,19 @@ class Conversation(models.Model):
         return f"Conv {self.client.username} ↔ {self.agency.legal_name}"
 
 
+MSG_TYPE = [
+    ('text',     'Texte'),
+    ('image',    'Image'),
+    ('audio',    'Audio'),
+    ('document', 'Document'),
+]
+
 class Message(models.Model):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
     sender       = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
-    content      = models.TextField()
+    content      = models.TextField(blank=True, default='')
+    msg_type     = models.CharField(max_length=10, choices=MSG_TYPE, default='text')
+    file         = models.FileField(upload_to='messages/', null=True, blank=True)
     created_at   = models.DateTimeField(auto_now_add=True)
     is_read      = models.BooleanField(default=False)
 
@@ -237,7 +246,7 @@ class Message(models.Model):
         ordering = ['created_at']
 
     def __str__(self):
-        return f"Msg #{self.id} de {self.sender.username}"
+        return f"Msg #{self.id} de {self.sender.username} [{self.msg_type}]"
 
 
 class Payment(models.Model):

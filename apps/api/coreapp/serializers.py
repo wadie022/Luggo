@@ -242,11 +242,20 @@ class AgencyBranchSerializer(serializers.ModelSerializer):
 class MessageSerializer(serializers.ModelSerializer):
     sender_id       = serializers.IntegerField(source='sender.id', read_only=True)
     sender_username = serializers.CharField(source='sender.username', read_only=True)
+    file_url        = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
-        fields = ('id', 'conversation', 'sender_id', 'sender_username', 'content', 'created_at', 'is_read')
+        fields = ('id', 'conversation', 'sender_id', 'sender_username', 'content', 'msg_type', 'file_url', 'created_at', 'is_read')
         read_only_fields = ('id', 'conversation', 'sender_id', 'sender_username', 'created_at', 'is_read')
+
+    def get_file_url(self, obj):
+        if not obj.file:
+            return None
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(obj.file.url)
+        return obj.file.url
 
 
 class ConversationListSerializer(serializers.ModelSerializer):

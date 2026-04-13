@@ -1382,7 +1382,7 @@ class ConversationView(APIView):
         notify(agency.user,
                title=f"Nouveau message de {request.user.username}",
                message=content[:120],
-               link="/dashboard/agency/messages")
+               link=f"/dashboard/agency/messages?conv={conv.id}")
 
         msgs_prefetch = _Prefetch('messages', queryset=Message.objects.select_related('sender').order_by('created_at'))
         conv = Conversation.objects.select_related('client', 'agency', 'shipment').prefetch_related(msgs_prefetch).get(pk=conv.pk)
@@ -1410,34 +1410,50 @@ class MessageListView(APIView):
         if conv is None:
             return Response({"detail": "Conversation introuvable."}, status=status.HTTP_404_NOT_FOUND)
         msgs = conv.messages.select_related('sender').order_by('created_at')
-        return Response(MessageSerializer(msgs, many=True).data)
+        return Response(MessageSerializer(msgs, many=True, context={'request': request}).data)
 
     def post(self, request, pk):
         conv = self._get_conv(pk, request.user)
         if conv is None:
             return Response({"detail": "Conversation introuvable."}, status=status.HTTP_404_NOT_FOUND)
 
-        content = (request.data.get('content') or '').strip()
-        if not content:
+        content  = (request.data.get('content') or '').strip()
+        msg_type = (request.data.get('msg_type') or 'text').strip()
+        file_obj = request.FILES.get('file')
+
+        if msg_type not in ('text', 'image', 'audio', 'document'):
+            msg_type = 'text'
+
+        if not content and not file_obj:
             return Response({"detail": "Le message ne peut pas être vide."}, status=status.HTTP_400_BAD_REQUEST)
 
-        msg = Message.objects.create(conversation=conv, sender=request.user, content=content)
+        if file_obj and msg_type == 'text':
+            msg_type = 'document'
+
+        msg = Message.objects.create(
+            conversation=conv,
+            sender=request.user,
+            content=content,
+            msg_type=msg_type,
+            file=file_obj,
+        )
         conv.save()  # bump updated_at
 
         # Notifier le destinataire
         if request.user.id == conv.client_id:
             recipient = conv.agency.user
-            link = "/dashboard/agency/messages"
+            link = f"/dashboard/agency/messages?conv={conv.id}"
         else:
             recipient = conv.client
-            link = "/messages"
+            link = f"/messages?conv={conv.id}"
 
+        notify_text = content[:120] if content else f"[{msg_type}]"
         notify(recipient,
                title=f"Nouveau message de {request.user.username}",
-               message=content[:120],
+               message=notify_text,
                link=link)
 
-        return Response(MessageSerializer(msg).data, status=status.HTTP_201_CREATED)
+        return Response(MessageSerializer(msg, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
 
 class ConversationReadView(APIView):
