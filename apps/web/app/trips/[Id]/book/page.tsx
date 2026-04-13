@@ -53,6 +53,39 @@ export default function BookShipmentPage() {
   const [errorMsg, setErrorMsg]             = useState<string | null>(null);
   const [apiErrors, setApiErrors]           = useState<any>(null);
   const [createdShipment, setCreatedShipment] = useState<ShipmentResponse | null>(null);
+  const [addressDetecting, setAddressDetecting] = useState(false);
+  const [addressDetected, setAddressDetected]   = useState(false);
+  const [addressGeoError, setAddressGeoError]   = useState<string | null>(null);
+
+  async function detectDeliveryAddress() {
+    if (!navigator.geolocation) return;
+    setAddressDetecting(true);
+    setAddressGeoError(null);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+            { headers: { "Accept-Language": "fr" } }
+          );
+          const data = await res.json();
+          if (data.display_name) {
+            setDeliveryAddress(data.display_name);
+            setAddressDetected(true);
+          }
+        } catch {
+          setAddressGeoError("Impossible de récupérer l'adresse.");
+        } finally {
+          setAddressDetecting(false);
+        }
+      },
+      () => {
+        setAddressGeoError("Géolocalisation refusée.");
+        setAddressDetecting(false);
+      }
+    );
+  }
 
   const estimatedPrice =
     trip && weightKg ? Number(weightKg) * Number(trip.price_per_kg || 0) : null;
@@ -286,7 +319,7 @@ export default function BookShipmentPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setDeliveryType("HOME_DELIVERY")}
+                        onClick={() => { setDeliveryType("HOME_DELIVERY"); detectDeliveryAddress(); }}
                         className={`flex items-center gap-3 px-4 py-3 rounded-2xl border-2 text-sm font-semibold transition ${
                           deliveryType === "HOME_DELIVERY"
                             ? "border-blue-600 bg-blue-50 text-blue-700"
@@ -305,11 +338,20 @@ export default function BookShipmentPage() {
                       <Field label="Adresse de livraison">
                         <input
                           value={deliveryAddress}
-                          onChange={(e) => setDeliveryAddress(e.target.value)}
-                          placeholder="12 rue des Lilas, Casablanca"
+                          onChange={(e) => { setDeliveryAddress(e.target.value); setAddressDetected(false); }}
+                          placeholder={addressDetecting ? "Détection en cours…" : "12 rue des Lilas, Casablanca"}
                           required
                           className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
+                        {addressDetecting && (
+                          <p className="mt-1 text-xs text-blue-500 font-medium">📍 Détection de votre position…</p>
+                        )}
+                        {addressDetected && !addressDetecting && (
+                          <p className="mt-1 text-xs text-emerald-600 font-medium">📍 Adresse détectée automatiquement</p>
+                        )}
+                        {addressGeoError && (
+                          <p className="mt-1 text-xs text-slate-400">{addressGeoError}</p>
+                        )}
                       </Field>
                     </div>
                   )}
