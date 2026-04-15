@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
+import ClientNavbar from "@/components/ClientNavbar";
 
 function PaymentSuccessContent() {
   const params = useParams();
@@ -55,7 +56,9 @@ function PaymentSuccessContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[#f8f9fb]">
+      <ClientNavbar />
+      <div className="flex items-center justify-center px-4 py-16">
       <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-8 max-w-md w-full text-center">
         <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: "#eff6ff" }}>
           <CheckCircle2 className="w-8 h-8" style={{ color: "#2563eb" }} />
@@ -84,6 +87,7 @@ function PaymentSuccessContent() {
             Tous mes colis
           </Link>
         </div>
+      </div>
       </div>
     </div>
   );

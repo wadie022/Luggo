@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { API_BASE, getAccessToken, logout, getRole } from "@/lib/api";
+import { API_BASE, getAccessToken, getRole } from "@/lib/api";
 import { MapPin, ArrowLeft } from "lucide-react";
-import NotificationBell from "@/components/NotificationBell";
+import ClientNavbar from "@/components/ClientNavbar";
 import type { AgencyPoint } from "@/components/MapView";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
@@ -17,7 +17,6 @@ export default function MapPage() {
   const [loading, setLoading] = useState(true);
   const role = typeof window === "undefined" ? null : getRole();
 
-  function handleLogout() { logout(); router.replace("/login"); }
 
   useEffect(() => {
     const token = getAccessToken();
@@ -36,19 +35,7 @@ export default function MapPage() {
 
   return (
     <main className="min-h-screen bg-[#f8f9fb] text-[#0a0a0a]">
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
-        <div className="mx-auto max-w-6xl px-5 py-3 flex items-center justify-between">
-          <Link href="/trips" className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-[#2563eb] text-white flex items-center justify-center font-black text-lg">L</div>
-            <span className="font-black text-lg tracking-tight text-[#0a0a0a]">Luggo</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link href="/trips" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:text-[#2563eb] hover:bg-blue-50 transition">Trajets</Link>
-            <NotificationBell />
-            <button onClick={handleLogout} className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:text-[#0a0a0a] hover:bg-gray-50 transition">Déconnexion</button>
-          </div>
-        </div>
-      </header>
+      <ClientNavbar />
 
       <div className="mx-auto max-w-6xl px-5 py-8">
         <Link href="/trips" className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-[#2563eb] mb-8 transition">

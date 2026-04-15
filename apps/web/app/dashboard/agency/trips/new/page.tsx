@@ -169,7 +169,6 @@ export default function Page() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <TopBar />
 
       <div className="mx-auto max-w-6xl px-4 py-10">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
@@ -369,27 +368,6 @@ export default function Page() {
   );
 }
 
-function TopBar() {
-  return (
-    <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur border-b border-slate-800">
-      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-        <Link href="/dashboard/agency" className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-extrabold">
-            L
-          </div>
-          <span className="font-bold text-white">Luggo</span>
-        </Link>
-
-        <Link
-          href="/dashboard/agency"
-          className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800"
-        >
-          Dashboard
-        </Link>
-      </div>
-    </header>
-  );
-}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

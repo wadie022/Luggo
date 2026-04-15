@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { Suspense, useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { API_BASE, authHeader, fetchMe, logout } from "@/lib/api";
+import { API_BASE, authHeader, fetchMe } from "@/lib/api";
 import {
   ArrowLeft, Send, MessageSquare, ChevronLeft, Search,
   Paperclip, Mic, MicOff, Image as ImageIcon, File, X,
   Star, Phone, Mail, User, CheckCheck, Check, Play, Pause,
 } from "lucide-react";
-import NotificationBell from "@/components/NotificationBell";
+import ClientNavbar from "@/components/ClientNavbar";
 
 type ConvSummary = {
   id: number; agency_id: number; agency_name: string;
@@ -104,7 +104,6 @@ function MessagesContent() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  function handleLogout() { logout(); router.replace("/login"); }
 
   const loadConvs = useCallback(() => {
     fetch(`${API_BASE}/conversations/`, { headers: authHeader() })
@@ -325,21 +324,7 @@ function MessagesContent() {
 
   return (
     <main className="h-screen bg-[#f8f9fb] text-[#0a0a0a] flex flex-col overflow-hidden">
-      {/* NAVBAR */}
-      <header className="shrink-0 bg-white border-b border-gray-100 shadow-sm z-50">
-        <div className="mx-auto max-w-6xl px-5 py-3 flex items-center justify-between">
-          <Link href="/trips" className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-[#2563eb] text-white flex items-center justify-center font-black text-lg">L</div>
-            <span className="font-black text-lg tracking-tight text-[#0a0a0a]">Luggo</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link href="/trips" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:text-[#2563eb] hover:bg-blue-50 transition">Trajets</Link>
-            <Link href="/mes-colis" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:text-[#2563eb] hover:bg-blue-50 transition">Mes colis</Link>
-            <NotificationBell />
-            <button onClick={handleLogout} className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:text-[#0a0a0a] hover:bg-gray-50 transition">Déconnexion</button>
-          </div>
-        </div>
-      </header>
+      <ClientNavbar />
 
       {/* CHAT LAYOUT */}
       <div className="flex-1 flex overflow-hidden mx-auto w-full max-w-6xl">

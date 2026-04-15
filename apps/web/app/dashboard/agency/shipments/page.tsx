@@ -7,7 +7,6 @@ import { API_BASE, fetchMe, authHeader } from "@/lib/api";
 import {
   CheckCircle2, XCircle, Clock, Truck, MapPin, Building2, Home, Package, ArrowRight
 } from "lucide-react";
-import NotificationBell from "@/components/NotificationBell";
 
 type Shipment = {
   id: number;
@@ -144,7 +143,6 @@ export default function AgencyShipmentsPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900 print:bg-white">
-      <div className="print:hidden"><TopBar /></div>
 
       <div className="mx-auto max-w-6xl px-4 py-10">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6 print:hidden">
@@ -265,31 +263,3 @@ export default function AgencyShipmentsPage() {
   );
 }
 
-function TopBar() {
-  const router = useRouter();
-  function handleLogout() { localStorage.clear(); router.replace("/login"); }
-
-  return (
-    <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur border-b border-slate-800">
-      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-        <Link href="/dashboard/agency" className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-extrabold">L</div>
-          <span className="font-bold text-white">Luggo</span>
-        </Link>
-        <div className="flex items-center gap-2">
-          <Link href="/dashboard/agency" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
-            Trajets
-          </Link>
-          <Link href="/dashboard/agency/trips/new" className="px-3 py-2 rounded-xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700">
-            <span className="hidden sm:inline">Publier</span>
-            <span className="sm:hidden">+</span>
-          </Link>
-          <NotificationBell />
-          <button onClick={handleLogout} className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
-            Déconnexion
-          </button>
-        </div>
-      </div>
-    </header>
-  );
-}

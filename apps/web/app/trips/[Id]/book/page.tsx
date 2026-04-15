@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { API_BASE, authHeader, getAccessToken, getRole, logout, fetchMe } from "@/lib/api";
+import { API_BASE, authHeader, getAccessToken, fetchMe } from "@/lib/api";
 import { ArrowLeft, Package, MapPin, Calendar, ArrowRight, Home, Building2, CreditCard } from "lucide-react";
+import ClientNavbar from "@/components/ClientNavbar";
 
 type Trip = {
   id: number;
@@ -83,12 +84,6 @@ export default function BookShipmentPage() {
   const deliveryFee = deliveryType === "HOME_DELIVERY" ? 8 : 0;
   const estimatedPrice = basePrice !== null ? basePrice + deliveryFee : null;
 
-  const role = typeof window === "undefined" ? null : getRole();
-
-  function handleLogout() {
-    logout();
-    router.replace("/login");
-  }
 
   useEffect(() => {
     async function guard() {
@@ -168,31 +163,7 @@ export default function BookShipmentPage() {
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
-      {/* NAVBAR */}
-      <header className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur border-b border-slate-800">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <LogoL />
-            <span className="font-bold tracking-tight text-lg text-white">Luggo</span>
-          </Link>
-
-          <nav className="hidden md:flex items-center gap-6 text-sm text-slate-200">
-            <Link href="/trips" className="hover:text-white">Trajets</Link>
-            <Link href="/mes-colis" className="hover:text-white">Mes colis</Link>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            {role === "AGENCY" && (
-              <Link href="/dashboard/agency" className="px-3 py-2 rounded-xl text-sm font-semibold text-emerald-300 hover:bg-slate-800">
-                Dashboard agence
-              </Link>
-            )}
-            <button onClick={handleLogout} className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
-              Déconnexion
-            </button>
-          </div>
-        </div>
-      </header>
+      <ClientNavbar />
 
       <div className="mx-auto max-w-4xl px-4 py-10">
         <Link href="/trips" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 mb-6">

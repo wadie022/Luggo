@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE, fetchMe, authHeader, logout } from "@/lib/api";
+import { API_BASE, fetchMe, authHeader } from "@/lib/api";
 import {
   ChevronDown, ChevronUp, Pencil, Trash2, ShieldAlert,
-  Plus, Phone, Mail, MapPin, Package, CreditCard, Menu, X, Star, CheckCircle2,
+  Plus, Phone, Mail, MapPin, Package, CreditCard, Star, CheckCircle2,
 } from "lucide-react";
-import NotificationBell from "@/components/NotificationBell";
 
 type Trip = {
   id: number; origin_country: string; origin_city: string;
@@ -46,67 +45,6 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function TopBar() {
-  const router = useRouter();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  function handleLogout() { logout(); router.replace("/login"); }
-
-  const navLinks = [
-    { href: "/dashboard/agency/shipments", label: "Demandes" },
-    { href: "/dashboard/agency/messages", label: "Messages" },
-    { href: "/dashboard/agency/branches", label: "Adresses" },
-    { href: "/reclamations", label: "Réclamations" },
-    { href: "/dashboard/agency/profile", label: "Profil" },
-  ];
-
-  return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
-      <div className="mx-auto max-w-6xl px-5 py-3 flex items-center justify-between">
-        <Link href="/dashboard/agency" className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-xl bg-[#2563eb] text-white flex items-center justify-center font-black text-lg">L</div>
-          <span className="font-black text-lg text-[#0a0a0a]">Luggo</span>
-        </Link>
-
-        <nav className="hidden md:flex items-center gap-1">
-          {navLinks.map((l) => (
-            <Link key={l.href} href={l.href}
-              className="px-3 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:text-[#2563eb] hover:bg-blue-50 transition">
-              {l.label}
-            </Link>
-          ))}
-          <NotificationBell />
-          <button onClick={handleLogout}
-            className="ml-1 px-3 py-2 rounded-xl text-sm font-semibold text-gray-400 hover:text-[#0a0a0a] hover:bg-gray-50 transition">
-            Déconnexion
-          </button>
-        </nav>
-
-        <div className="flex md:hidden items-center gap-2">
-          <NotificationBell />
-          <button onClick={() => setMobileOpen(v => !v)}
-            className="p-2 rounded-xl text-gray-500 hover:text-[#0a0a0a] hover:bg-gray-50 transition">
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-        </div>
-      </div>
-
-      {mobileOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 shadow-md px-5 py-3 flex flex-col gap-1">
-          {navLinks.map((l) => (
-            <Link key={l.href} href={l.href} onClick={() => setMobileOpen(false)}
-              className="px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:text-[#2563eb] hover:bg-blue-50 transition">
-              {l.label}
-            </Link>
-          ))}
-          <button onClick={handleLogout}
-            className="text-left px-3 py-2.5 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 transition">
-            Déconnexion
-          </button>
-        </div>
-      )}
-    </header>
-  );
-}
 
 function ShipmentCard({ shipment, pricePerKg, onStatusChange }: {
   shipment: Shipment; pricePerKg: number;
@@ -490,7 +428,6 @@ export default function AgencyDashboardPage() {
 
   return (
     <main className="min-h-screen bg-[#f8f9fb] text-[#0a0a0a]">
-      <TopBar />
 
       {/* KYB banner */}
       {kycStatus !== "VERIFIED" && (

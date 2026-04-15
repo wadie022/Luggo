@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE, authHeader, fetchMe, logout } from "@/lib/api";
+import { API_BASE, authHeader, fetchMe } from "@/lib/api";
 import { AlertCircle, CheckCircle2, Clock, MessageSquare, Plus, ArrowRight, X } from "lucide-react";
-import NotificationBell from "@/components/NotificationBell";
+import ClientNavbar from "@/components/ClientNavbar";
 
 type Shipment = { id: number; trip_detail: { origin_city: string; dest_city: string } };
 
@@ -87,20 +87,7 @@ export default function ReclamationsPage() {
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
-      {/* NAVBAR */}
-      <header className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur border-b border-slate-800">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-          <Link href="/trips" className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-extrabold">L</div>
-            <span className="font-bold tracking-tight text-lg text-white">Luggo</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link href="/mes-colis" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">Mes colis</Link>
-            <NotificationBell />
-            <button onClick={() => { logout(); router.replace("/login"); }} className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">Déconnexion</button>
-          </div>
-        </div>
-      </header>
+      <ClientNavbar />
 
       <div className="mx-auto max-w-3xl px-4 py-8">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">

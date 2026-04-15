@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE, authHeader, fetchMe, logout } from "@/lib/api";
+import { API_BASE, authHeader, fetchMe } from "@/lib/api";
 import { MapPin, Plus, Trash2, ArrowLeft, CheckCircle2, XCircle, Star, LocateFixed } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -49,7 +49,6 @@ export default function AgencyBranchesPage() {
   const [errorMsg, setErrorMsg]   = useState<string | null>(null);
   const [locatingId, setLocatingId] = useState<number | null>(null);
 
-  function handleLogout() { logout(); router.replace("/login"); }
 
   useEffect(() => {
     async function boot() {
@@ -154,15 +153,6 @@ export default function AgencyBranchesPage() {
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
-      <header className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur border-b border-slate-800">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-          <Link href="/dashboard/agency" className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-extrabold">L</div>
-            <span className="font-bold text-white">Luggo Agence</span>
-          </Link>
-          <button onClick={handleLogout} className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">Déconnexion</button>
-        </div>
-      </header>
 
       <div className="mx-auto max-w-2xl px-4 py-10">
         <Link href="/dashboard/agency" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 mb-6">

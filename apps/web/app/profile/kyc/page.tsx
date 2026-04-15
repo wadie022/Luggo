@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE, authHeader, fetchMe, logout, getRole } from "@/lib/api";
+import { API_BASE, authHeader, fetchMe } from "@/lib/api";
 import { ShieldCheck, ShieldX, Clock, Upload, ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
+import ClientNavbar from "@/components/ClientNavbar";
 
 type KYCStatus = "PENDING" | "VERIFIED" | "REJECTED";
 
@@ -60,7 +61,6 @@ export default function KYCPage() {
 
   const role = typeof window === "undefined" ? null : getRole();
 
-  function handleLogout() { logout(); router.replace("/login"); }
 
   useEffect(() => {
     fetchMe().catch(() => router.replace("/login"));
@@ -134,26 +134,7 @@ export default function KYCPage() {
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
-      {/* NAVBAR */}
-      <header className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur border-b border-slate-800">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <LogoL />
-            <span className="font-bold tracking-tight text-lg text-white">Luggo</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            {role === "AGENCY" && (
-              <Link href="/dashboard/agency" className="hidden sm:block px-3 py-2 rounded-xl text-sm font-semibold text-emerald-300 hover:bg-slate-800">
-                Dashboard
-              </Link>
-            )}
-            <button onClick={handleLogout} className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-200 hover:bg-slate-800">
-              <span className="hidden sm:inline">Déconnexion</span>
-              <span className="sm:hidden text-xs">✕</span>
-            </button>
-          </div>
-        </div>
-      </header>
+      <ClientNavbar />
 
       <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
         <Link href={role === "AGENCY" ? "/dashboard/agency" : "/trips"} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 mb-6">

@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { API_BASE, getAccessToken, getRole, logout, fetchMe, authHeader } from "@/lib/api";
-import { MapPin, Package, Calendar, ArrowRight, Menu, X, LocateFixed } from "lucide-react";
-import NotificationBell from "@/components/NotificationBell";
+import { API_BASE, getAccessToken, getRole, authHeader } from "@/lib/api";
+import { MapPin, Package, Calendar, ArrowRight, LocateFixed } from "lucide-react";
+import ClientNavbar from "@/components/ClientNavbar";
 import type { AgencyPoint } from "@/components/MapView";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
@@ -33,9 +33,6 @@ export default function TripsPage() {
   const [error, setError] = useState<string | null>(null);
   const [origin, setOrigin] = useState("");
   const [dest, setDest] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [username, setUsername] = useState<string>("");
-  const [menuOpen, setMenuOpen] = useState(false);
   const [agencies, setAgencies] = useState<AgencyPoint[]>([]);
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [locating, setLocating] = useState(false);
@@ -52,10 +49,6 @@ export default function TripsPage() {
   useEffect(() => {
     const token = getAccessToken();
     if (!token) { router.replace("/login"); return; }
-    fetchMe().then((me) => {
-      setAvatarUrl(me.avatar_url ?? null);
-      setUsername(me.username ?? "");
-    }).catch(() => {});
   }, [router]);
 
   async function fetchTrips() {
@@ -90,62 +83,10 @@ export default function TripsPage() {
 
   const role = typeof window === "undefined" ? null : getRole();
 
-  function handleLogout() { logout(); router.replace("/login"); }
-
   return (
     <main className="min-h-screen bg-[#f8f9fb] text-[#0a0a0a]">
 
-      {/* NAVBAR */}
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
-        <div className="mx-auto max-w-6xl px-5 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-[#2563eb] text-white flex items-center justify-center font-black text-lg">L</div>
-            <span className="font-black text-lg tracking-tight text-[#0a0a0a]">Luggo</span>
-          </Link>
-
-          <nav className="hidden md:flex items-center gap-1 text-sm">
-            <Link href="/trips" className="px-3 py-2 rounded-xl font-bold text-[#2563eb] bg-blue-50">Trajets</Link>
-            <Link href="/mes-colis" className="px-3 py-2 rounded-xl text-gray-500 hover:text-[#2563eb] hover:bg-blue-50 transition">Mes colis</Link>
-            <Link href="/messages" className="px-3 py-2 rounded-xl text-gray-500 hover:text-[#2563eb] hover:bg-blue-50 transition">Messages</Link>
-            <Link href="/map" className="px-3 py-2 rounded-xl text-gray-500 hover:text-[#2563eb] hover:bg-blue-50 transition">Carte</Link>
-            <Link href="/reclamations" className="px-3 py-2 rounded-xl text-gray-500 hover:text-[#2563eb] hover:bg-blue-50 transition">Réclamations</Link>
-          </nav>
-
-          {menuOpen && (
-            <div className="md:hidden absolute top-[57px] left-0 right-0 bg-white border-b border-gray-100 shadow-md px-5 py-4 flex flex-col gap-1 z-50">
-              <Link href="/trips" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded-xl text-[#2563eb] font-bold bg-blue-50">Trajets</Link>
-              {role !== "AGENCY" && <Link href="/mes-colis" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-50">Mes colis</Link>}
-              <Link href="/map" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-50">Carte des agences</Link>
-              <Link href="/reclamations" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-50">Réclamations</Link>
-              <Link href="/profile" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-50">Mon profil</Link>
-              <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="text-left px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50">Déconnexion</button>
-            </div>
-          )}
-
-          <div className="flex items-center gap-2">
-            {role === "AGENCY" && (
-              <Link href="/dashboard/agency" className="hidden md:block px-3 py-2 rounded-xl text-sm font-bold text-emerald-600 hover:bg-emerald-50 transition">
-                Dashboard
-              </Link>
-            )}
-            <button onClick={handleLogout} className="hidden md:block px-3 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:text-[#0a0a0a] hover:bg-gray-50 transition">
-              Déconnexion
-            </button>
-            <NotificationBell />
-            <Link href="/profile" className="flex items-center">
-              <div className="h-9 w-9 rounded-full overflow-hidden bg-[#2563eb] flex items-center justify-center ring-2 ring-gray-100 hover:ring-[#2563eb]/30 transition">
-                {avatarUrl
-                  ? <img src={avatarUrl} alt="Profil" className="h-full w-full object-cover" />
-                  : <span className="text-white text-xs font-black">{username.slice(0, 2).toUpperCase() || "?"}</span>
-                }
-              </div>
-            </Link>
-            <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2 rounded-xl text-gray-500 hover:text-[#0a0a0a] hover:bg-gray-50">
-              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
-          </div>
-        </div>
-      </header>
+      <ClientNavbar />
 
       {/* HERO + SEARCH */}
       <section className="bg-white border-b border-gray-100">
