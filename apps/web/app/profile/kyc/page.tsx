@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE, authHeader, fetchMe } from "@/lib/api";
+import { API_BASE, authHeader, fetchMe, getRole } from "@/lib/api";
 import { ShieldCheck, ShieldX, Clock, Upload, ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
 import ClientNavbar from "@/components/ClientNavbar";
 
