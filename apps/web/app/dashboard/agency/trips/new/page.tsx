@@ -32,7 +32,6 @@ export default function Page() {
   const [arrivalEta, setArrivalEta] = useState(""); // datetime-local (optional)
   const [capacityKg, setCapacityKg] = useState<number>(20);
   const [pricePerKg, setPricePerKg] = useState<number>(5);
-  const [homeDeliveryPrice, setHomeDeliveryPrice] = useState<number>(0);
   const [status, setStatus] = useState<"PUBLISHED" | "CLOSED">("PUBLISHED");
 
   const [submitting, setSubmitting] = useState(false);
@@ -131,7 +130,7 @@ export default function Page() {
         arrival_eta: arrivalEta ? toISO(arrivalEta) : null,
         capacity_kg: Number(capacityKg),
         price_per_kg: Number(pricePerKg),
-        home_delivery_price: Number(homeDeliveryPrice),
+        home_delivery_price: 8,
         status,
       };
 
