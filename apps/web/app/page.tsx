@@ -390,12 +390,12 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* Contact */}
+            {/* Liens */}
             <div>
-              <h4 className="font-bold text-white mb-4 text-sm uppercase tracking-widest">Contact</h4>
+              <h4 className="font-bold text-white mb-4 text-sm uppercase tracking-widest">Liens</h4>
               <ul className="space-y-2.5 text-sm text-white/50">
-                <li><a href="mailto:contact@luggo.ma" className="hover:text-white transition">contact@luggo.ma</a></li>
-                <li><Link href="/map" className="hover:text-white transition">Nos agences</Link></li>
+                <li><Link href="/trips" className="hover:text-white transition">Voir les trajets</Link></li>
+                <li><Link href="/reclamations" className="hover:text-white transition">Réclamations</Link></li>
               </ul>
 
               {/* Réseaux sociaux */}

@@ -21,6 +21,7 @@ export default function ClientNavbar() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [username, setUsername] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
   const role = typeof window === "undefined" ? null : getRole();
 
   useEffect(() => {
@@ -28,8 +29,9 @@ export default function ClientNavbar() {
       .then((me) => {
         setAvatarUrl(me.avatar_url ?? null);
         setUsername(me.username ?? "");
+        setLoggedIn(true);
       })
-      .catch(() => {});
+      .catch(() => setLoggedIn(false));
   }, []);
 
   function handleLogout() {
@@ -81,33 +83,49 @@ export default function ClientNavbar() {
               className="px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-50">
               Mon profil
             </Link>
-            <button onClick={() => { handleLogout(); setMenuOpen(false); }}
-              className="text-left px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50">
-              Déconnexion
-            </button>
+            {loggedIn
+              ? <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="text-left px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50">Déconnexion</button>
+              : <Link href="/login" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded-xl text-[#2563eb] font-bold hover:bg-blue-50">Connexion</Link>
+            }
           </div>
         )}
 
         <div className="flex items-center gap-2">
-          {role === "AGENCY" && (
-            <Link href="/dashboard/agency"
-              className="hidden md:block px-3 py-2 rounded-xl text-sm font-bold text-emerald-600 hover:bg-emerald-50 transition">
-              Dashboard
-            </Link>
+          {loggedIn ? (
+            <>
+              {role === "AGENCY" && (
+                <Link href="/dashboard/agency"
+                  className="hidden md:block px-3 py-2 rounded-xl text-sm font-bold text-emerald-600 hover:bg-emerald-50 transition">
+                  Dashboard
+                </Link>
+              )}
+              <button onClick={handleLogout}
+                className="hidden md:block px-3 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:text-[#0a0a0a] hover:bg-gray-50 transition">
+                Déconnexion
+              </button>
+              <NotificationBell />
+              <Link href="/profile" className="flex items-center">
+                <div className="h-9 w-9 rounded-full overflow-hidden bg-[#2563eb] flex items-center justify-center ring-2 ring-gray-100 hover:ring-[#2563eb]/30 transition">
+                  {avatarUrl
+                    ? <img src={avatarUrl} alt="Profil" className="h-full w-full object-cover" />
+                    : <span className="text-white text-xs font-black">{username.slice(0, 2).toUpperCase() || "?"}</span>
+                  }
+                </div>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/login"
+                className="hidden md:block px-4 py-2 text-sm font-semibold text-[#2563eb] hover:bg-blue-50 rounded-full transition">
+                Connexion
+              </Link>
+              <Link href="/register"
+                className="hidden md:block px-4 py-2 text-sm font-bold text-white rounded-full hover:bg-blue-700 transition"
+                style={{ backgroundColor: "#2563eb" }}>
+                S'inscrire
+              </Link>
+            </>
           )}
-          <button onClick={handleLogout}
-            className="hidden md:block px-3 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:text-[#0a0a0a] hover:bg-gray-50 transition">
-            Déconnexion
-          </button>
-          <NotificationBell />
-          <Link href="/profile" className="flex items-center">
-            <div className="h-9 w-9 rounded-full overflow-hidden bg-[#2563eb] flex items-center justify-center ring-2 ring-gray-100 hover:ring-[#2563eb]/30 transition">
-              {avatarUrl
-                ? <img src={avatarUrl} alt="Profil" className="h-full w-full object-cover" />
-                : <span className="text-white text-xs font-black">{username.slice(0, 2).toUpperCase() || "?"}</span>
-              }
-            </div>
-          </Link>
           <button onClick={() => setMenuOpen(!menuOpen)}
             className="md:hidden p-2 rounded-xl text-gray-500 hover:text-[#0a0a0a] hover:bg-gray-50">
             {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}

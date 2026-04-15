@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { API_BASE, getAccessToken, getRole, authHeader } from "@/lib/api";
+import { API_BASE, getRole, authHeader } from "@/lib/api";
 import { MapPin, Package, Calendar, ArrowRight, LocateFixed } from "lucide-react";
 import ClientNavbar from "@/components/ClientNavbar";
 import type { AgencyPoint } from "@/components/MapView";
@@ -46,10 +46,6 @@ export default function TripsPage() {
     );
   }
 
-  useEffect(() => {
-    const token = getAccessToken();
-    if (!token) { router.replace("/login"); return; }
-  }, [router]);
 
   async function fetchTrips() {
     try {
