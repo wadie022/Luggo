@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { API_BASE, getAccessToken, getRole } from "@/lib/api";
+import { API_BASE, getRole } from "@/lib/api";
 import { MapPin, ArrowLeft } from "lucide-react";
 import ClientNavbar from "@/components/ClientNavbar";
 import type { AgencyPoint } from "@/components/MapView";
@@ -12,21 +11,18 @@ import type { AgencyPoint } from "@/components/MapView";
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
 export default function MapPage() {
-  const router = useRouter();
   const [points, setPoints] = useState<AgencyPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const role = typeof window === "undefined" ? null : getRole();
 
 
   useEffect(() => {
-    const token = getAccessToken();
-    if (!token) { router.replace("/login"); return; }
     fetch(`${API_BASE}/agency-branches/`)
       .then((r) => r.json())
       .then(setPoints)
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [router]);
+  }, []);
 
   const agencyMap = new Map<number, AgencyPoint>();
   for (const p of points) {
@@ -63,7 +59,9 @@ export default function MapPage() {
                 const branchCount = points.filter(p => p.agency_id === a.agency_id).length;
                 return (
                   <div key={a.agency_id} className="rounded-2xl border border-gray-100 bg-white p-4 hover:border-[#2563eb]/20 hover:shadow-md transition group shadow-sm">
-                    <div className="font-bold text-sm text-[#0a0a0a]">{a.legal_name}</div>
+                    <Link href={`/agences/${a.agency_id}`} className="font-bold text-sm text-[#0a0a0a] hover:text-[#2563eb] transition">
+                      {a.legal_name}
+                    </Link>
                     <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
                       <MapPin className="h-3 w-3" />
                       {a.city}, {a.country}
@@ -73,10 +71,10 @@ export default function MapPage() {
                     )}
                     <div className="mt-3 flex gap-3">
                       <Link
-                        href={`/trips?origin_country=${a.country}`}
+                        href={`/agences/${a.agency_id}`}
                         className="text-xs font-bold text-[#2563eb] hover:text-blue-700 transition"
                       >
-                        Voir les trajets →
+                        Voir le profil →
                       </Link>
                       {role !== "AGENCY" && (
                         <Link

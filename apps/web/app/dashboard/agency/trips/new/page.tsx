@@ -371,9 +371,10 @@ export default function Page() {
           <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
             <div className="text-sm font-semibold text-slate-900">Conseils</div>
             <ul className="mt-3 grid gap-2 text-sm text-slate-600">
-              <li>• Codes pays ISO : FR, BE, ES, CH, IT, MA.</li>
-              <li>• Le prix client = prix agence + frais service (UI après).</li>
-              <li>• La capacité sera liée aux demandes acceptées (après).</li>
+              <li>• Sélectionne les pays dans les listes déroulantes.</li>
+              <li>• Le prix affiché au client inclut 5% de frais de service Luggo.</li>
+              <li>• La capacité disponible diminue à chaque demande acceptée.</li>
+              <li>• La livraison à domicile est proposée à 8 € pour toutes tes courses.</li>
             </ul>
           </div>
         </div>
