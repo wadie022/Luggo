@@ -378,9 +378,9 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl px-5 pt-14 pb-8">
 
           {/* Top footer */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-8 mb-12">
             {/* Brand */}
-            <div className="col-span-2 md:col-span-1">
+            <div>
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="h-9 w-9 rounded-xl bg-[#2563eb] text-white flex items-center justify-center font-black text-lg">L</div>
                 <span className="font-black text-xl text-white">Luggo</span>
@@ -388,27 +388,6 @@ export default function HomePage() {
               <p className="text-sm text-white/50 leading-relaxed max-w-[180px]">
                 La plateforme de transport de colis Europe ↔ Maroc.
               </p>
-            </div>
-
-            {/* Clients */}
-            <div>
-              <h4 className="font-bold text-white mb-4 text-sm uppercase tracking-widest">Clients</h4>
-              <ul className="space-y-2.5 text-sm text-white/50">
-                <li><Link href="/trips" className="hover:text-white transition">Voir les trajets</Link></li>
-                <li><Link href="/mes-colis" className="hover:text-white transition">Mes colis</Link></li>
-                <li><Link href="/messages" className="hover:text-white transition">Messages</Link></li>
-                <li><Link href="/reclamations" className="hover:text-white transition">Réclamations</Link></li>
-              </ul>
-            </div>
-
-            {/* Agences */}
-            <div>
-              <h4 className="font-bold text-white mb-4 text-sm uppercase tracking-widest">Agences</h4>
-              <ul className="space-y-2.5 text-sm text-white/50">
-                <li><Link href="/register" className="hover:text-white transition">Rejoindre Luggo</Link></li>
-                <li><Link href="/dashboard/agency" className="hover:text-white transition">Dashboard</Link></li>
-                <li><Link href="/map" className="hover:text-white transition">Carte des agences</Link></li>
-              </ul>
             </div>
 
             {/* Contact */}
