@@ -678,6 +678,54 @@ class AgencyListView(generics.ListAPIView):
         return Response(list(agencies))
 
 
+class AgencyPublicDetailView(APIView):
+    """GET /api/agencies/<id>/ — profil public d'une agence."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, pk):
+        from .models import Agency as AgencyModel, AgencyBranch, Review as ReviewModel
+        from django.db.models import Avg, Count
+        try:
+            agency = AgencyModel.objects.get(pk=pk)
+        except AgencyModel.DoesNotExist:
+            return Response({"detail": "Agence introuvable."}, status=404)
+
+        branches = list(AgencyBranch.objects.filter(agency=agency).values(
+            "id", "label", "address", "city", "country", "latitude", "longitude", "is_main"
+        ))
+
+        trips = list(Trip.objects.filter(
+            agency=agency, status="PUBLISHED"
+        ).filter(departure_at__gt=timezone.now()).values(
+            "id", "origin_city", "origin_country", "dest_city", "dest_country",
+            "departure_at", "arrival_eta", "capacity_kg", "price_per_kg", "status"
+        ).order_by("departure_at")[:10])
+
+        review_stats = ReviewModel.objects.filter(agency=agency).aggregate(
+            avg_rating=Avg("rating"), count=Count("id")
+        )
+
+        reviews = list(ReviewModel.objects.filter(agency=agency).order_by("-created_at").values(
+            "id", "rating", "comment", "created_at", "reviewer__username"
+        )[:20])
+        for r in reviews:
+            r["reviewer_username"] = r.pop("reviewer__username")
+
+        return Response({
+            "id": agency.id,
+            "legal_name": agency.legal_name,
+            "city": agency.city,
+            "country": agency.country,
+            "address": agency.address,
+            "kyc_status": agency.kyc_status,
+            "avg_rating": round(review_stats["avg_rating"], 1) if review_stats["avg_rating"] else None,
+            "review_count": review_stats["count"],
+            "branches": branches,
+            "trips": trips,
+            "reviews": reviews,
+        })
+
+
 class PublicAgencyBranchesView(APIView):
     """
     GET /api/agency-branches/
@@ -1373,12 +1421,16 @@ class AgencyStatsView(APIView):
 
 class ReviewView(APIView):
     """
-    GET  /reviews/?agency=<id>  → avis sur une agence
+    GET  /reviews/?agency=<id>  → avis sur une agence (public)
     GET  /reviews/?user=<id>    → avis reçus sur un client
     GET  /reviews/              → avis reçus pour l'utilisateur connecté
     POST /reviews/              → soumettre un avis
     """
-    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.request.method == "GET" and self.request.query_params.get("agency"):
+            return [permissions.AllowAny()]
+        return [IsAuthenticated()]
 
     def get(self, request):
         agency_id = request.query_params.get("agency")

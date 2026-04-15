@@ -239,7 +239,15 @@ function TripCard({ trip, onBook, onContact }: { trip: Trip; onBook: () => void;
         <div className="flex items-center gap-1 text-xs text-gray-400 font-medium">
           <MapPin className="h-3 w-3" />
           {trip.origin_country} → {trip.dest_country}
-          {trip.agency_name && <span className="ml-1">· {trip.agency_name}</span>}
+          {trip.agency_name && (
+            <Link
+              href={`/agences/${trip.agency}`}
+              className="ml-1 hover:text-[#2563eb] hover:underline transition"
+              onClick={(e) => e.stopPropagation()}
+            >
+              · {trip.agency_name}
+            </Link>
+          )}
         </div>
       </div>
 

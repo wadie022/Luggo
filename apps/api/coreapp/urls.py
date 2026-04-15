@@ -2,7 +2,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import (
-    healthz, RegisterView, TripListView, TripDetailView,
+    healthz, RegisterView, TripListView, TripDetailView, AgencyPublicDetailView,
     ShipmentCreateView, ShipmentClientView, MeView, AvatarUploadView,
     KYCUploadView, KYCStatusView,
     AgencyKYBUploadView, AgencyKYBStatusView,
@@ -36,6 +36,7 @@ urlpatterns = [
     path("notifications/read-all/", NotificationReadAllView.as_view(), name="notifications-read-all"),
 
     path("agencies/", AgencyListView.as_view(), name="agency-list"),
+    path("agencies/<int:pk>/", AgencyPublicDetailView.as_view(), name="agency-public-detail"),
     path("agency-branches/", PublicAgencyBranchesView.as_view(), name="public-agency-branches"),
     path("trips/", TripListView.as_view(), name="trip-list"),
     path("trips/<int:pk>/", TripDetailView.as_view(), name="trip-detail"),
