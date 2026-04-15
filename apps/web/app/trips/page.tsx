@@ -11,6 +11,18 @@ import type { AgencyPoint } from "@/components/MapView";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
+const COUNTRIES = [
+  { code: "FR", name: "France" },
+  { code: "BE", name: "Belgique" },
+  { code: "ES", name: "Espagne" },
+  { code: "IT", name: "Italie" },
+  { code: "NL", name: "Pays-Bas" },
+  { code: "CH", name: "Suisse" },
+  { code: "DE", name: "Allemagne" },
+  { code: "PT", name: "Portugal" },
+  { code: "MA", name: "Maroc" },
+];
+
 type Trip = {
   id: number;
   agency: number;
@@ -96,23 +108,25 @@ export default function TripsPage() {
           <div className="flex flex-col sm:flex-row gap-3 max-w-2xl">
             <div className="flex-1 flex flex-col gap-1.5">
               <label className="text-xs font-bold uppercase text-gray-500 tracking-widest">Pays d'origine</label>
-              <input
+              <select
                 value={origin}
                 onChange={(e) => setOrigin(e.target.value)}
-                placeholder="FR, BE, ES…"
-                maxLength={2}
-                className="px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2563eb]/50 focus:outline-none focus:bg-white text-sm text-[#0a0a0a] placeholder:text-gray-400 transition"
-              />
+                className="px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2563eb]/50 focus:outline-none focus:bg-white text-sm text-[#0a0a0a] transition"
+              >
+                <option value="">Tous les pays</option>
+                {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+              </select>
             </div>
             <div className="flex-1 flex flex-col gap-1.5">
               <label className="text-xs font-bold uppercase text-gray-500 tracking-widest">Pays de destination</label>
-              <input
+              <select
                 value={dest}
                 onChange={(e) => setDest(e.target.value)}
-                placeholder="MA, FR…"
-                maxLength={2}
-                className="px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2563eb]/50 focus:outline-none focus:bg-white text-sm text-[#0a0a0a] placeholder:text-gray-400 transition"
-              />
+                className="px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2563eb]/50 focus:outline-none focus:bg-white text-sm text-[#0a0a0a] transition"
+              >
+                <option value="">Tous les pays</option>
+                {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+              </select>
             </div>
             <div className="flex flex-col justify-end gap-1.5">
               <label className="text-xs font-bold uppercase text-transparent tracking-widest select-none">.</label>

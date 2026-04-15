@@ -5,6 +5,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, fetchMe, authHeader } from "@/lib/api";
 
+const COUNTRIES = [
+  { code: "FR", name: "France" },
+  { code: "BE", name: "Belgique" },
+  { code: "ES", name: "Espagne" },
+  { code: "IT", name: "Italie" },
+  { code: "NL", name: "Pays-Bas" },
+  { code: "CH", name: "Suisse" },
+  { code: "DE", name: "Allemagne" },
+  { code: "PT", name: "Portugal" },
+  { code: "MA", name: "Maroc" },
+];
+
 type TripPayload = {
   origin_country: string;
   origin_city: string;
@@ -187,15 +199,16 @@ export default function Page() {
         <div className="mt-8 grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
             <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
-              <Field label="Pays d'origine (ISO)">
-                <input
+              <Field label="Pays d'origine">
+                <select
                   value={originCountry}
                   onChange={(e) => setOriginCountry(e.target.value)}
-                  maxLength={2}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="FR"
                   required
-                />
+                >
+                  <option value="">Sélectionner…</option>
+                  {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+                </select>
               </Field>
 
               <Field label="Ville d'origine">
@@ -232,15 +245,16 @@ export default function Page() {
                 </div>
               </Field>
 
-              <Field label="Pays de destination (ISO)">
-                <input
+              <Field label="Pays de destination">
+                <select
                   value={destCountry}
                   onChange={(e) => setDestCountry(e.target.value)}
-                  maxLength={2}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="MA"
                   required
-                />
+                >
+                  <option value="">Sélectionner…</option>
+                  {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+                </select>
               </Field>
 
               <Field label="Ville de destination">
