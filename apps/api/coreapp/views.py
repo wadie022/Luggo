@@ -32,6 +32,7 @@ from .emails import (
     send_shipment_created, send_shipment_accepted, send_shipment_rejected,
     send_shipment_deposited, send_shipment_in_transit, send_shipment_arrived, send_shipment_delivered,
     send_trip_published, send_route_alert,
+    send_shipment_new_to_agency, send_reclamation_received, send_reclamation_replied,
 )
 
 
@@ -196,6 +197,10 @@ class ShipmentCreateView(generics.ListCreateAPIView):
                 "status_label": "En attente",
                 "created_at": shipment.created_at.strftime("%d/%m/%Y à %H:%M"),
             }
+        )
+        send_shipment_new_to_agency(
+            t.agency.user.email, t.agency.legal_name, route,
+            shipment.customer_name, shipment.weight_kg, shipment.id,
         )
 
 
@@ -642,14 +647,13 @@ class ReclamationView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         rec = serializer.save(user=self.request.user)
-        # Notif client
         notify(self.request.user, "Réclamation reçue 📋",
                "Nous avons bien reçu ta réclamation. Notre équipe te répondra sous 48h.", "/reclamations")
-        # Notif admins
         admins = User.objects.filter(role="ADMIN")
         for admin in admins:
             notify(admin, f"Nouvelle réclamation #{rec.id}",
                    f"De {self.request.user.username} : {rec.subject}", "/dashboard/admin")
+        send_reclamation_received(self.request.user.email, self.request.user.username, rec.subject)
 
 
 class AdminReclamationsView(generics.ListAPIView):
@@ -688,10 +692,10 @@ class AdminReclamationReplyView(APIView):
             rec.admin_response = admin_response
         rec.save()
 
-        # Notifier le client
         if rec.user and admin_response:
             notify(rec.user, "Réponse à ta réclamation 📩",
                    f"L'équipe Luggo a répondu à ta réclamation : {rec.subject}", "/reclamations")
+            send_reclamation_replied(rec.user.email, rec.user.username, rec.subject, admin_response)
 
         return Response(ReclamationSerializer(rec).data)
 

@@ -338,3 +338,41 @@ def send_trip_published(agency_email: str, agency_name: str, route: str):
         "Nouveau trajet publié",
         f"<p style='color:#475569'>L'agence <strong>{agency_name}</strong> a publié un nouveau trajet : <strong>{route}</strong>.</p>"
     ))
+
+
+def send_shipment_new_to_agency(agency_email: str, agency_name: str, route: str,
+                                 customer_name: str, weight_kg: float, shipment_id: int):
+    body = f"""
+    <p style="color:#475569;margin:0 0 16px">Bonjour <strong>{agency_name}</strong>,</p>
+    <p style="color:#475569;margin:0 0 16px">Un client vient de soumettre une demande de colis sur votre trajet <strong>{route}</strong>.</p>
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin:0 0 20px">
+      <p style="color:#0f172a;margin:0 0 6px"><strong>Client :</strong> {customer_name}</p>
+      <p style="color:#0f172a;margin:0 0 6px"><strong>Poids :</strong> {weight_kg} kg</p>
+      <p style="color:#0f172a;margin:0"><strong>N° colis :</strong> #{shipment_id}</p>
+    </div>
+    <a href="{SITE_URL}/dashboard/agency" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:600;display:inline-block">Accepter ou refuser →</a>"""
+    _send([agency_email], f"📦 Nouvelle demande de colis — {route}", _base("Nouvelle demande de colis", body))
+
+
+def send_reclamation_received(email: str, username: str, subject: str):
+    body = f"""
+    <p style="color:#475569;margin:0 0 16px">Bonjour <strong>{username}</strong>,</p>
+    <p style="color:#475569;margin:0 0 16px">Nous avons bien reçu ta réclamation : <strong>{subject}</strong>.</p>
+    <p style="color:#475569;margin:0 0 24px">Notre équipe te répondra dans les 48h.</p>
+    <a href="{SITE_URL}/reclamations" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:600;display:inline-block">Voir mes réclamations →</a>"""
+    _send([email], "Réclamation reçue ✅", _base("Réclamation enregistrée", body))
+    _send([ADMIN_EMAIL], f"[Luggo] Nouvelle réclamation de {username}", _base(
+        "Nouvelle réclamation",
+        f"<p style='color:#475569'><strong>{username}</strong> ({email}) a soumis une réclamation : <em>{subject}</em>.</p>"
+    ))
+
+
+def send_reclamation_replied(email: str, username: str, subject: str, reply: str):
+    body = f"""
+    <p style="color:#475569;margin:0 0 16px">Bonjour <strong>{username}</strong>,</p>
+    <p style="color:#475569;margin:0 0 12px">L'équipe Luggo a répondu à ta réclamation : <strong>{subject}</strong>.</p>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px;margin:0 0 20px">
+      <p style="color:#1e40af;margin:0;font-size:14px">{reply}</p>
+    </div>
+    <a href="{SITE_URL}/reclamations" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:600;display:inline-block">Voir ma réclamation →</a>"""
+    _send([email], f"Réponse à ta réclamation 📩", _base("Réponse reçue", body))
