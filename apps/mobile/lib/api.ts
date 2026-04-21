@@ -2,8 +2,8 @@ import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
 export const API_BASE = Platform.OS === "web"
-  ? "https://xxx.loca.lt/api"   // ← remplace par ton URL localtunnel
-  : "http://172.20.10.3:8000/api";
+  ? "https://luggo-production.up.railway.app/api"
+  : "https://luggo-production.up.railway.app/api";
 
 export const WEB_BASE = "http://localhost:3000";
 
