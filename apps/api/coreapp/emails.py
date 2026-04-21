@@ -316,6 +316,18 @@ def send_shipment_delivered(customer_email: str, customer_name: str, trip_route:
     _send([customer_email], "Colis livré ✅", _base("Livraison confirmée !", body))
 
 
+def send_route_alert(email: str, username: str, route: str, price_per_kg: float):
+    body = f"""
+    <p style="color:#475569;margin:0 0 16px">Bonjour <strong>{username}</strong>,</p>
+    <p style="color:#475569;margin:0 0 16px">Un nouveau trajet correspondant à votre alerte vient d'être publié :</p>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px;margin:0 0 20px">
+      <p style="color:#1e40af;margin:0;font-size:18px;font-weight:800">{route}</p>
+      <p style="color:#3b82f6;margin:8px 0 0;font-size:14px">{price_per_kg} €/kg</p>
+    </div>
+    <a href="{SITE_URL}/trips" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:600;display:inline-block">Voir le trajet →</a>"""
+    _send([email], f"🚚 Nouveau trajet : {route}", _base("Alerte trajet !", body))
+
+
 def send_trip_published(agency_email: str, agency_name: str, route: str):
     body = f"""
     <p style="color:#475569;margin:0 0 16px">Bonjour <strong>{agency_name}</strong>,</p>

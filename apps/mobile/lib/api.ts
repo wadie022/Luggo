@@ -1,34 +1,61 @@
+import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
-// En dev, remplace par l'IP de ta machine (ex: 192.168.1.X:8000)
-// En prod, mets l'URL de ton API déployée
-export const API_BASE = "http://192.168.1.100:8000/api";
+export const API_BASE = Platform.OS === "web"
+  ? "https://xxx.loca.lt/api"   // ← remplace par ton URL localtunnel
+  : "http://172.20.10.3:8000/api";
+
+export const WEB_BASE = "http://localhost:3000";
 
 const TOKEN_KEY = "luggo_access";
 const REFRESH_KEY = "luggo_refresh";
 const ROLE_KEY = "luggo_role";
 
+// Stockage compatible web + native
+async function setItem(key: string, value: string) {
+  if (Platform.OS === "web") {
+    localStorage.setItem(key, value);
+  } else {
+    await SecureStore.setItemAsync(key, value);
+  }
+}
+
+async function getItem(key: string): Promise<string | null> {
+  if (Platform.OS === "web") {
+    return localStorage.getItem(key);
+  }
+  return SecureStore.getItemAsync(key);
+}
+
+async function removeItem(key: string) {
+  if (Platform.OS === "web") {
+    localStorage.removeItem(key);
+  } else {
+    await SecureStore.deleteItemAsync(key);
+  }
+}
+
 export async function getAccessToken(): Promise<string | null> {
-  return SecureStore.getItemAsync(TOKEN_KEY);
+  return getItem(TOKEN_KEY);
 }
 
 export async function saveTokens(access: string, refresh: string, role: string) {
   await Promise.all([
-    SecureStore.setItemAsync(TOKEN_KEY, access),
-    SecureStore.setItemAsync(REFRESH_KEY, refresh),
-    SecureStore.setItemAsync(ROLE_KEY, role),
+    setItem(TOKEN_KEY, access),
+    setItem(REFRESH_KEY, refresh),
+    setItem(ROLE_KEY, role),
   ]);
 }
 
 export async function getRole(): Promise<string | null> {
-  return SecureStore.getItemAsync(ROLE_KEY);
+  return getItem(ROLE_KEY);
 }
 
 export async function logout() {
   await Promise.all([
-    SecureStore.deleteItemAsync(TOKEN_KEY),
-    SecureStore.deleteItemAsync(REFRESH_KEY),
-    SecureStore.deleteItemAsync(ROLE_KEY),
+    removeItem(TOKEN_KEY),
+    removeItem(REFRESH_KEY),
+    removeItem(ROLE_KEY),
   ]);
 }
 
@@ -48,6 +75,15 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     },
   });
   return res;
+}
+
+export async function apiUpload(path: string, formData: FormData, method = "POST") {
+  const headers = await authHeader();
+  return fetch(`${API_BASE}${path}`, {
+    method,
+    headers,
+    body: formData,
+  });
 }
 
 export async function fetchMe() {

@@ -17,7 +17,7 @@ import mimetypes
 import re as _re
 from django.utils import timezone
 
-from .models import Trip, Shipment, KYCDocument, AgencyDocument, Notification, Reclamation, AgencyBranch, Review, Conversation, Message, Payment
+from .models import Trip, Shipment, KYCDocument, AgencyDocument, Notification, Reclamation, AgencyBranch, Review, Conversation, Message, Payment, PushToken, RouteAlert
 from .serializers import (
     RegisterSerializer, TripSerializer, ShipmentSerializer, MeSerializer,
     AgencyTripSerializer, AgencyShipmentSerializer, KYCDocumentSerializer,
@@ -31,8 +31,20 @@ from .emails import (
     send_kyb_submitted, send_kyb_approved, send_kyb_rejected,
     send_shipment_created, send_shipment_accepted, send_shipment_rejected,
     send_shipment_deposited, send_shipment_in_transit, send_shipment_arrived, send_shipment_delivered,
-    send_trip_published,
+    send_trip_published, send_route_alert,
 )
+
+
+def _send_expo_push(tokens: list, title: str, body: str, data: dict = None):
+    """Envoie des push notifications via l'API Expo."""
+    if not tokens:
+        return
+    import requests
+    messages = [{"to": t, "title": title, "body": body, "data": data or {}, "sound": "default"} for t in tokens]
+    try:
+        requests.post("https://exp.host/--/api/v2/push/send", json=messages, timeout=5)
+    except Exception:
+        pass
 
 
 @api_view(["GET"])
@@ -277,6 +289,24 @@ class TripListView(generics.ListCreateAPIView):
         trip = serializer.save(agency=agency)
         route = f"{trip.origin_city} ({trip.origin_country}) → {trip.dest_city} ({trip.dest_country})"
         send_trip_published(self.request.user.email, agency.legal_name, route)
+
+        # Notifier les utilisateurs ayant une alerte matchante
+        alerts = RouteAlert.objects.filter(is_active=True).filter(
+            Q(origin_country='') | Q(origin_country=trip.origin_country)
+        ).filter(
+            Q(dest_country='') | Q(dest_country=trip.dest_country)
+        ).filter(
+            Q(max_price__isnull=True) | Q(max_price__gte=trip.price_per_kg)
+        ).select_related('user')
+        push_title = f"🚚 Nouveau trajet disponible !"
+        push_body = f"{trip.origin_city} → {trip.dest_city} à {trip.price_per_kg}€/kg"
+        for alert in alerts:
+            u = alert.user
+            tokens = list(u.push_tokens.values_list('token', flat=True))
+            _send_expo_push(tokens, push_title, push_body, {"tripId": trip.id})
+            notify(u, push_title, push_body, link=f"/trips/{trip.id}")
+            if u.email:
+                send_route_alert(u.email, u.first_name or u.username, route, trip.price_per_kg)
 
 
 # ============================
@@ -1772,3 +1802,74 @@ class PaymentWebhookView(APIView):
                 pass
 
         return Response({"ok": True})
+
+
+# ============================
+# 📱 PUSH TOKENS
+# ============================
+
+class PushTokenView(APIView):
+    """POST /api/push-token/ — enregistre le token Expo Push d'un appareil."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        token = request.data.get('token', '').strip()
+        if token:
+            PushToken.objects.get_or_create(user=request.user, token=token)
+        return Response({'ok': True})
+
+    def delete(self, request):
+        token = request.data.get('token', '').strip()
+        if token:
+            PushToken.objects.filter(user=request.user, token=token).delete()
+        return Response({'ok': True})
+
+
+# ============================
+# 🔔 ROUTE ALERTS
+# ============================
+
+class RouteAlertSerializer_inline:
+    pass
+
+
+class RouteAlertListView(APIView):
+    """GET/POST /api/alerts/ — liste et crée des alertes de trajet."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        alerts = RouteAlert.objects.filter(user=request.user, is_active=True)
+        data = [
+            {
+                'id': a.id,
+                'origin_country': a.origin_country,
+                'dest_country': a.dest_country,
+                'max_price': float(a.max_price) if a.max_price else None,
+                'created_at': a.created_at.isoformat(),
+            }
+            for a in alerts
+        ]
+        return Response(data)
+
+    def post(self, request):
+        alert = RouteAlert.objects.create(
+            user=request.user,
+            origin_country=request.data.get('origin_country', '').upper(),
+            dest_country=request.data.get('dest_country', '').upper(),
+            max_price=request.data.get('max_price') or None,
+        )
+        return Response({
+            'id': alert.id,
+            'origin_country': alert.origin_country,
+            'dest_country': alert.dest_country,
+            'max_price': float(alert.max_price) if alert.max_price else None,
+        }, status=201)
+
+
+class RouteAlertDeleteView(APIView):
+    """DELETE /api/alerts/<pk>/ — supprime une alerte."""
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk):
+        RouteAlert.objects.filter(user=request.user, pk=pk).delete()
+        return Response({'ok': True})

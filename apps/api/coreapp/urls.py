@@ -16,7 +16,8 @@ from .views import (
     ReviewView, PublicAgencyBranchesView,
     ConversationView, MessageListView, ConversationReadView,
     PaymentCreateIntentView, PaymentStatusView, PaymentWebhookView,
-    AgencyTripBulkStatusView
+    AgencyTripBulkStatusView,
+    PushTokenView, RouteAlertListView, RouteAlertDeleteView,
 )
 
 urlpatterns = [
@@ -87,4 +88,9 @@ urlpatterns = [
     path("payments/create-intent/", PaymentCreateIntentView.as_view(), name="payment-create-intent"),
     path("payments/webhook/", PaymentWebhookView.as_view(), name="payment-webhook"),
     path("payments/<int:shipment_id>/", PaymentStatusView.as_view(), name="payment-status"),
+
+    # Push tokens & alertes
+    path("push-token/", PushTokenView.as_view(), name="push-token"),
+    path("alerts/", RouteAlertListView.as_view(), name="route-alerts"),
+    path("alerts/<int:pk>/", RouteAlertDeleteView.as_view(), name="route-alert-delete"),
 ]

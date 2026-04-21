@@ -261,3 +261,33 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"Payment for Shipment #{self.shipment_id} - {self.status}"
+
+
+class PushToken(models.Model):
+    """Token Expo Push pour notifications mobiles (iOS/Android)."""
+    user      = models.ForeignKey(User, on_delete=models.CASCADE, related_name='push_tokens')
+    token     = models.CharField(max_length=500)
+    platform  = models.CharField(max_length=20, default='expo')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [['user', 'token']]
+
+    def __str__(self):
+        return f"PushToken {self.user.username} [{self.platform}]"
+
+
+class RouteAlert(models.Model):
+    """Alerte de trajet — notifie l'utilisateur quand un trajet matching est publié."""
+    user           = models.ForeignKey(User, on_delete=models.CASCADE, related_name='route_alerts')
+    origin_country = models.CharField(max_length=10, blank=True)
+    dest_country   = models.CharField(max_length=10, blank=True)
+    max_price      = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    is_active      = models.BooleanField(default=True)
+    created_at     = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Alert {self.user.username}: {self.origin_country or '*'}→{self.dest_country or '*'}"
