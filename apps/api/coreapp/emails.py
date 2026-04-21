@@ -111,18 +111,46 @@ def _send(to: list[str], subject: str, html: str, attachments: list | None = Non
 
 
 def _base(title: str, body: str) -> str:
-    return f"""
-    <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;background:#fff;border-radius:16px;border:1px solid #e2e8f0">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
-        <div style="background:#2563eb;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:18px">L</div>
-        <span style="font-weight:700;font-size:18px;color:#0f172a">Luggo</span>
-      </div>
-      <h1 style="font-size:20px;font-weight:800;color:#0f172a;margin:0 0 12px">{title}</h1>
-      {body}
-      <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8">
-        © Luggo.ma — Transport Europe ↔ Maroc
-      </div>
-    </div>"""
+    return f"""<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>{title}</title></head>
+<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+
+        <!-- HEADER -->
+        <tr><td style="background:linear-gradient(135deg,#1d4ed8 0%,#2563eb 100%);border-radius:16px 16px 0 0;padding:32px 40px;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="width:44px;vertical-align:middle;">
+                <div style="background:rgba(255,255,255,0.2);width:44px;height:44px;border-radius:12px;text-align:center;line-height:44px;font-size:22px;font-weight:900;color:#ffffff;">L</div>
+              </td>
+              <td style="vertical-align:middle;padding-left:12px;">
+                <span style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Luggo</span>
+              </td>
+            </tr>
+          </table>
+          <h1 style="margin:20px 0 0;font-size:24px;font-weight:800;color:#ffffff;line-height:1.3;">{title}</h1>
+        </td></tr>
+
+        <!-- BODY -->
+        <tr><td style="background:#ffffff;padding:36px 40px;">
+          {body}
+        </td></tr>
+
+        <!-- FOOTER -->
+        <tr><td style="background:#f8fafc;border-top:1px solid #e2e8f0;border-radius:0 0 16px 16px;padding:20px 40px;text-align:center;">
+          <p style="margin:0;font-size:12px;color:#94a3b8;">© 2026 Luggo.ma — Transport Europe ↔ Maroc</p>
+          <p style="margin:6px 0 0;font-size:12px;color:#cbd5e1;">Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
 
 
 # ─── Inscription ───────────────────────────────────────────────────────────────
