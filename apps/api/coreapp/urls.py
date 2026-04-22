@@ -19,6 +19,7 @@ from .views import (
     AgencyTripBulkStatusView,
     PushTokenView, RouteAlertListView, RouteAlertDeleteView,
     EmailVerifyView, EmailResendCodeView,
+    DeleteAccountView,
 )
 
 urlpatterns = [
@@ -32,6 +33,7 @@ urlpatterns = [
 
     path("me/", MeView.as_view(), name="me"),
     path("me/avatar/", AvatarUploadView.as_view(), name="me-avatar"),
+    path("me/delete/", DeleteAccountView.as_view(), name="me-delete"),
 
     # Notifications
     path("notifications/", NotificationListView.as_view(), name="notifications"),

@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE, authHeader, fetchMe } from "@/lib/api";
-import { ArrowLeft, Camera, Mail, User, MapPin, Calendar, CreditCard, ShieldCheck, ShieldX, Clock, Star, Package } from "lucide-react";
+import { API_BASE, authHeader, fetchMe, logout } from "@/lib/api";
+import { ArrowLeft, Camera, Mail, User, MapPin, Calendar, CreditCard, ShieldCheck, ShieldX, Clock, Star, Package, Trash2 } from "lucide-react";
 import ClientNavbar from "@/components/ClientNavbar";
 
 type Me = {
@@ -50,6 +50,9 @@ export default function ProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [reviewsReceived, setReviewsReceived] = useState<Review[]>([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
 
   useEffect(() => {
@@ -190,6 +193,14 @@ export default function ProfilePage() {
           </Link>
         </div>
 
+        {/* Supprimer le compte */}
+        <div className="pt-2">
+          <button onClick={() => setShowDeleteModal(true)}
+            className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 font-semibold transition">
+            <Trash2 className="h-4 w-4" /> Supprimer mon compte
+          </button>
+        </div>
+
         {/* Avis reçus */}
         <div>
           <div className="flex items-center justify-between mb-5">
@@ -224,6 +235,52 @@ export default function ProfilePage() {
         </div>
       </div>
     </main>
+
+    {/* Modal suppression */}
+    {showDeleteModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+        <div className="bg-white rounded-3xl p-7 w-full max-w-md shadow-2xl">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-11 w-11 rounded-2xl bg-red-100 flex items-center justify-center">
+              <Trash2 className="h-5 w-5 text-red-600" />
+            </div>
+            <div>
+              <h2 className="font-black text-slate-900">Supprimer mon compte</h2>
+              <p className="text-xs text-slate-500">Cette action est irréversible.</p>
+            </div>
+          </div>
+          <p className="text-sm text-slate-600 mb-4">
+            Toutes tes données (colis, messages, avis) seront définitivement supprimées.
+            Pour confirmer, tape <strong className="text-red-600">supprimer</strong> ci-dessous.
+          </p>
+          <input
+            value={deleteConfirm}
+            onChange={e => setDeleteConfirm(e.target.value)}
+            placeholder="supprimer"
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:border-red-400 mb-4 text-slate-800"
+          />
+          <div className="flex gap-3">
+            <button
+              onClick={async () => {
+                if (deleteConfirm !== "supprimer") return;
+                setDeleting(true);
+                const res = await fetch(`${API_BASE}/me/delete/`, { method: "DELETE", headers: authHeader() });
+                if (res.ok) { logout(); router.replace("/"); }
+                setDeleting(false);
+              }}
+              disabled={deleteConfirm !== "supprimer" || deleting}
+              className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition disabled:opacity-40"
+            >
+              {deleting ? "Suppression..." : "Supprimer définitivement"}
+            </button>
+            <button onClick={() => { setShowDeleteModal(false); setDeleteConfirm(""); }}
+              className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50 transition">
+              Annuler
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   );
 }
 

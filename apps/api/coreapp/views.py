@@ -220,6 +220,17 @@ class MeView(APIView):
         return Response(ser.data)
 
 
+class DeleteAccountView(APIView):
+    """DELETE /api/me/delete/ — supprimer son propre compte."""
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request):
+        if request.user.role == "ADMIN":
+            return Response({"detail": "Les comptes admin ne peuvent pas être supprimés via cette route."}, status=status.HTTP_403_FORBIDDEN)
+        request.user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class AvatarUploadView(APIView):
     """PATCH /api/me/avatar/ — upload ou remplace la photo de profil."""
     permission_classes = [IsAuthenticated]
