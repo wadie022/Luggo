@@ -36,7 +36,12 @@ class KYCDocumentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = KYCDocument
-        fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at", "user_info", "id_front_url", "id_back_url")
+        fields = (
+            "id", "status", "rejection_reason", "extracted_data",
+            "submitted_at", "verified_at", "user_info",
+            "id_front_url", "id_back_url",
+            "first_name", "last_name", "expiry_date",
+        )
         read_only_fields = fields
 
     def get_user_info(self, obj):
@@ -57,15 +62,23 @@ class KYCDocumentSerializer(serializers.ModelSerializer):
 
 class AgencyDocumentSerializer(serializers.ModelSerializer):
     agency_name = serializers.SerializerMethodField()
+    agency_email = serializers.SerializerMethodField()
     document_url = serializers.SerializerMethodField()
 
     class Meta:
         model = AgencyDocument
-        fields = ("id", "status", "rejection_reason", "extracted_data", "submitted_at", "verified_at", "agency_name", "document_url")
+        fields = (
+            "id", "status", "rejection_reason", "extracted_data",
+            "submitted_at", "verified_at", "agency_name", "agency_email",
+            "document_url", "expiry_date",
+        )
         read_only_fields = fields
 
     def get_agency_name(self, obj):
         return obj.agency.legal_name
+
+    def get_agency_email(self, obj):
+        return obj.agency.user.email
 
     def get_document_url(self, obj):
         try:

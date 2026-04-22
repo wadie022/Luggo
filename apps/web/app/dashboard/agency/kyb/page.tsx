@@ -57,6 +57,7 @@ export default function AgencyKYBPage() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [expiryDate, setExpiryDate] = useState("");
 
 
   useEffect(() => {
@@ -96,6 +97,7 @@ export default function AgencyKYBPage() {
 
     const form = new FormData();
     form.append("document", file);
+    if (expiryDate) form.append("expiry_date", expiryDate);
 
     try {
       const res = await fetch(`${API_BASE}/agency/kyb/upload/`, {
@@ -200,6 +202,13 @@ export default function AgencyKYBPage() {
             )}
 
             <form onSubmit={handleSubmit} className="grid gap-5">
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 mb-1.5">
+                  Date d'expiration du document <span className="text-red-500">*</span>
+                </label>
+                <input type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} required
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-400 transition" />
+              </div>
               <div>
                 <label className="block text-xs font-semibold uppercase text-slate-500 mb-2">
                   Document officiel <span className="text-red-500">*</span>

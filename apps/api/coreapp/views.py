@@ -33,6 +33,7 @@ from .emails import (
     send_shipment_deposited, send_shipment_in_transit, send_shipment_arrived, send_shipment_delivered,
     send_trip_published, send_route_alert,
     send_shipment_new_to_agency, send_reclamation_received, send_reclamation_replied,
+    send_email_verification,
 )
 
 
@@ -236,6 +237,69 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
 
+    def perform_create(self, serializer):
+        import random, string
+        from django.utils import timezone as tz
+        user = serializer.save()
+        code = "".join(random.choices(string.digits, k=6))
+        user.email_verified = False
+        user.email_verification_code = code
+        user.email_verification_expires = tz.now() + timedelta(minutes=15)
+        user.save(update_fields=["email_verified", "email_verification_code", "email_verification_expires"])
+        if user.email:
+            send_email_verification(user.email, user.username, code)
+
+
+class EmailVerifyView(APIView):
+    """POST /api/auth/verify-email/ — vérifier l'adresse email avec le code reçu."""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        from django.utils import timezone as tz
+        email = (request.data.get("email") or "").strip()
+        code  = (request.data.get("code") or "").strip()
+        if not email or not code:
+            return Response({"detail": "email et code requis."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"detail": "Utilisateur introuvable."}, status=status.HTTP_404_NOT_FOUND)
+        if user.email_verified:
+            return Response({"detail": "Email déjà vérifié."})
+        if not user.email_verification_code or user.email_verification_code != code:
+            return Response({"detail": "Code incorrect."}, status=status.HTTP_400_BAD_REQUEST)
+        if user.email_verification_expires and tz.now() > user.email_verification_expires:
+            return Response({"detail": "Code expiré. Demande un nouveau code."}, status=status.HTTP_400_BAD_REQUEST)
+        user.email_verified = True
+        user.email_verification_code = ""
+        user.email_verification_expires = None
+        user.save(update_fields=["email_verified", "email_verification_code", "email_verification_expires"])
+        return Response({"detail": "Email vérifié avec succès."})
+
+
+class EmailResendCodeView(APIView):
+    """POST /api/auth/resend-verification/ — renvoyer le code de vérification."""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        import random, string
+        from django.utils import timezone as tz
+        email = (request.data.get("email") or "").strip()
+        if not email:
+            return Response({"detail": "email requis."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"detail": "Utilisateur introuvable."}, status=status.HTTP_404_NOT_FOUND)
+        if user.email_verified:
+            return Response({"detail": "Email déjà vérifié."})
+        code = "".join(random.choices(string.digits, k=6))
+        user.email_verification_code = code
+        user.email_verification_expires = tz.now() + timedelta(minutes=15)
+        user.save(update_fields=["email_verification_code", "email_verification_expires"])
+        send_email_verification(user.email, user.username, code)
+        return Response({"detail": "Code renvoyé."})
+
 
 class TripDetailView(generics.RetrieveAPIView):
     queryset = Trip.objects.all()
@@ -346,6 +410,15 @@ class KYCUploadView(APIView):
             kyc.id_front = id_front
             if id_back:
                 kyc.id_back = id_back
+            kyc.first_name  = (request.data.get("first_name") or "").strip()
+            kyc.last_name   = (request.data.get("last_name") or "").strip()
+            raw_expiry = (request.data.get("expiry_date") or "").strip()
+            if raw_expiry:
+                from datetime import date
+                try:
+                    kyc.expiry_date = date.fromisoformat(raw_expiry)
+                except ValueError:
+                    pass
             kyc.save()
         except Exception as e:
             return Response({"detail": f"Erreur sauvegarde fichier : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -607,6 +680,13 @@ class AgencyKYBUploadView(APIView):
         kyb.rejection_reason = ""
         kyb.extracted_data = {}
         kyb.document = doc_file
+        raw_expiry = (request.data.get("expiry_date") or "").strip()
+        if raw_expiry:
+            from datetime import date
+            try:
+                kyb.expiry_date = date.fromisoformat(raw_expiry)
+            except ValueError:
+                pass
         kyb.save()
 
         send_kyb_submitted(agency.user.email, agency.legal_name)

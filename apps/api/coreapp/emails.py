@@ -153,6 +153,21 @@ def _base(title: str, body: str) -> str:
 </html>"""
 
 
+# ─── Vérification email ────────────────────────────────────────────────────────
+
+def send_email_verification(email: str, username: str, code: str):
+    body = f"""
+    <p style="color:#475569;margin:0 0 16px">Bonjour <strong>{username}</strong>,</p>
+    <p style="color:#475569;margin:0 0 20px">Pour activer ton compte Luggo, entre le code de vérification ci-dessous. Il est valable <strong>15 minutes</strong>.</p>
+    <div style="text-align:center;margin:0 0 24px">
+      <div style="display:inline-block;background:#eff6ff;border:2px solid #bfdbfe;border-radius:16px;padding:20px 40px;">
+        <span style="font-size:36px;font-weight:900;letter-spacing:12px;color:#1d4ed8;font-family:monospace">{code}</span>
+      </div>
+    </div>
+    <p style="color:#94a3b8;font-size:13px;margin:0">Si tu n'as pas créé de compte Luggo, ignore cet email.</p>"""
+    _send([email], "Vérifie ton adresse email 🔐", _base("Code de vérification", body))
+
+
 # ─── Inscription ───────────────────────────────────────────────────────────────
 
 def send_welcome_client(email: str, username: str):

@@ -19,6 +19,9 @@ type KYCItem = {
   user_info?: { username: string; email: string };
   id_front_url?: string | null;
   id_back_url?: string | null;
+  first_name?: string;
+  last_name?: string;
+  expiry_date?: string | null;
   extracted_data?: { first_name?: string; last_name?: string } | null;
 };
 
@@ -29,7 +32,9 @@ type KYBItem = {
   submitted_at: string;
   verified_at: string | null;
   agency_name?: string;
+  agency_email?: string;
   document_url?: string | null;
+  expiry_date?: string | null;
   extracted_data?: { company_name?: string; registration_number?: string; manager_name?: string; legal_form?: string } | null;
 };
 
@@ -638,8 +643,8 @@ function KYCCard({ item, onApprove, onReject }: {
   onReject: (reason: string) => void;
 }) {
   const [showForm, setShowForm] = useState(false);
-  const [firstName, setFirstName] = useState(item.extracted_data?.first_name ?? "");
-  const [lastName,  setLastName]  = useState(item.extracted_data?.last_name  ?? "");
+  const [firstName, setFirstName] = useState(item.first_name || item.extracted_data?.first_name || "");
+  const [lastName,  setLastName]  = useState(item.last_name  || item.extracted_data?.last_name  || "");
   const [rejectMode, setRejectMode] = useState(false);
   const [reason, setReason] = useState("");
   const docUrls = [item.id_front_url, item.id_back_url].filter(Boolean) as string[];
@@ -650,6 +655,12 @@ function KYCCard({ item, onApprove, onReject }: {
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-slate-900">Client — {item.user_info?.username ?? `#${item.id}`}</div>
           {item.user_info?.email && <div className="text-sm text-slate-500">{item.user_info.email}</div>}
+          {(item.first_name || item.last_name) && (
+            <div className="text-sm font-medium text-slate-700 mt-0.5">{item.first_name} {item.last_name}</div>
+          )}
+          {item.expiry_date && (
+            <div className="text-xs text-amber-600 font-medium mt-0.5">Expiration CIN/Passeport : {new Date(item.expiry_date).toLocaleDateString("fr-FR")}</div>
+          )}
           <div className="text-xs text-slate-400 mt-1">
             Soumis le {new Date(item.submitted_at).toLocaleDateString("fr-FR")} à {new Date(item.submitted_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
           </div>
@@ -721,9 +732,9 @@ function KYCCard({ item, onApprove, onReject }: {
         <div className="flex flex-wrap gap-3">
           {docUrls.map((url, i) => (
             <a key={i} href={url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 text-sm font-semibold text-slate-700 hover:text-blue-700 transition">
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-sm font-bold text-blue-700 transition">
               <Eye className="h-4 w-4" />
-              {docUrls.length > 1 ? (i === 0 ? "Recto" : "Verso") : "Voir le document"}
+              {docUrls.length > 1 ? (i === 0 ? "📄 Recto CIN/Passeport" : "📄 Verso CIN/Passeport") : "📄 Voir la carte d'identité"}
             </a>
           ))}
         </div>
@@ -748,7 +759,11 @@ function KYBCard({ item, onApprove, onReject }: {
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-slate-900">Agence — {item.agency_name ?? `#${item.id}`}</div>
+          {item.agency_email && <div className="text-sm text-slate-500">{item.agency_email}</div>}
           {item.extracted_data?.manager_name && <div className="text-sm text-slate-500">Gérant : {item.extracted_data.manager_name}</div>}
+          {item.expiry_date && (
+            <div className="text-xs text-amber-600 font-medium mt-0.5">Expiration document : {new Date(item.expiry_date).toLocaleDateString("fr-FR")}</div>
+          )}
           <div className="text-xs text-slate-400 mt-1">
             Soumis le {new Date(item.submitted_at).toLocaleDateString("fr-FR")} à {new Date(item.submitted_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
           </div>

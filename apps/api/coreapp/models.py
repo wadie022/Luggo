@@ -13,6 +13,9 @@ class User(AbstractUser):
     kyc_status = models.CharField(max_length=20, choices=KYC_STATUS, default='PENDING')
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     email = models.EmailField(blank=True)
+    email_verified = models.BooleanField(default=False)
+    email_verification_code = models.CharField(max_length=6, blank=True)
+    email_verification_expires = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.username} ({self.role})"
@@ -61,6 +64,9 @@ class KYCDocument(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='kyc')
     id_front = models.FileField(upload_to='kyc/', null=True, blank=True)
     id_back  = models.FileField(upload_to='kyc/', null=True, blank=True)
+    first_name  = models.CharField(max_length=100, blank=True)
+    last_name   = models.CharField(max_length=100, blank=True)
+    expiry_date = models.DateField(null=True, blank=True)
     status   = models.CharField(max_length=20, choices=KYC_STATUS, default='PENDING')
     rejection_reason = models.TextField(blank=True)
     extracted_data   = models.JSONField(default=dict, blank=True)
@@ -90,6 +96,7 @@ class AgencyDocument(models.Model):
     """Vérification d'entreprise (KYB) — pour les agences (Kbis / Registre de Commerce)."""
     agency = models.OneToOneField(Agency, on_delete=models.CASCADE, related_name='kyb_doc')
     document = models.FileField(upload_to='kyb/', null=True, blank=True)
+    expiry_date = models.DateField(null=True, blank=True)
     status   = models.CharField(max_length=20, choices=KYC_STATUS, default='PENDING')
     rejection_reason = models.TextField(blank=True)
     extracted_data   = models.JSONField(default=dict, blank=True)

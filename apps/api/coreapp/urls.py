@@ -18,12 +18,15 @@ from .views import (
     PaymentCreateIntentView, PaymentStatusView, PaymentWebhookView,
     AgencyTripBulkStatusView,
     PushTokenView, RouteAlertListView, RouteAlertDeleteView,
+    EmailVerifyView, EmailResendCodeView,
 )
 
 urlpatterns = [
     path("healthz/", healthz, name="healthz"),
 
     path("auth/register/", RegisterView.as_view(), name="auth-register"),
+    path("auth/verify-email/", EmailVerifyView.as_view(), name="auth-verify-email"),
+    path("auth/resend-verification/", EmailResendCodeView.as_view(), name="auth-resend-verification"),
     path("auth/login/", TokenObtainPairView.as_view(), name="auth-login"),
     path("auth/refresh/", TokenRefreshView.as_view(), name="auth-refresh"),
 
