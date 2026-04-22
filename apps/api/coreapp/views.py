@@ -932,18 +932,45 @@ class AdminUsersView(APIView):
         elif active == "true":
             qs = qs.filter(is_active=True)
 
-        data = [
-            {
+        qs = qs.prefetch_related("kycdocument_set", "agency__agencydocument_set")
+
+        data = []
+        for u in qs:
+            entry = {
                 "id": u.id,
                 "username": u.username,
                 "email": u.email,
+                "first_name": u.first_name,
+                "last_name": u.last_name,
                 "role": u.role,
                 "kyc_status": u.kyc_status,
                 "is_active": u.is_active,
                 "date_joined": u.date_joined.strftime("%d/%m/%Y"),
             }
-            for u in qs
-        ]
+            if u.role == "CLIENT":
+                kyc = u.kycdocument_set.order_by("-submitted_at").first()
+                if kyc:
+                    entry["kyc_doc"] = {
+                        "first_name": kyc.first_name or "",
+                        "last_name": kyc.last_name or "",
+                        "expiry_date": kyc.expiry_date.isoformat() if kyc.expiry_date else None,
+                        "id_front_url": kyc.id_front.url if kyc.id_front else None,
+                        "id_back_url": kyc.id_back.url if kyc.id_back else None,
+                    }
+            elif u.role == "AGENCY":
+                agency = getattr(u, "agency", None)
+                if agency:
+                    entry["agency_info"] = {
+                        "legal_name": agency.legal_name or "",
+                        "registration_number": agency.registration_number or "",
+                    }
+                    kyb = agency.agencydocument_set.order_by("-submitted_at").first()
+                    if kyb:
+                        entry["kyb_doc"] = {
+                            "expiry_date": kyb.expiry_date.isoformat() if kyb.expiry_date else None,
+                            "document_url": kyb.document.url if kyb.document else None,
+                        }
+            data.append(entry)
         return Response(data)
 
 

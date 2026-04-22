@@ -80,10 +80,19 @@ type AdminUser = {
   id: number;
   username: string;
   email: string;
+  first_name: string;
+  last_name: string;
   role: string;
   kyc_status: string;
   is_active: boolean;
   date_joined: string;
+  kyc_doc?: {
+    first_name: string; last_name: string;
+    expiry_date: string | null;
+    id_front_url: string | null; id_back_url: string | null;
+  };
+  agency_info?: { legal_name: string; registration_number: string };
+  kyb_doc?: { expiry_date: string | null; document_url: string | null };
 };
 
 type Tab = "stats" | "kyc" | "users" | "reclamations";
@@ -386,68 +395,13 @@ export default function AdminDashboard() {
               {users.length === 0 ? (
                 <p className="text-slate-400 py-8 text-center">Aucun utilisateur trouvé.</p>
               ) : users.map((u) => (
-                <div
+                <UserCard
                   key={u.id}
-                  className={`rounded-3xl border bg-white p-5 flex flex-col sm:flex-row sm:items-center gap-4 ${
-                    !u.is_active ? "border-red-200 bg-red-50/30" : "border-slate-200"
-                  }`}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-slate-900">{u.username}</span>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${
-                        u.role === "AGENCY"
-                          ? "bg-purple-50 text-purple-700 border-purple-200"
-                          : "bg-blue-50 text-blue-700 border-blue-200"
-                      }`}>{u.role}</span>
-                      {!u.is_active && (
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 flex items-center gap-1">
-                          <Ban className="h-3 w-3" /> Banni
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-sm text-slate-500 mt-0.5">{u.email}</div>
-                    <div className="text-xs text-slate-400 mt-1">
-                      Inscrit le {u.date_joined} · KYC : <span className={
-                        u.kyc_status === "VERIFIED" ? "text-emerald-600 font-semibold" :
-                        u.kyc_status === "REJECTED" ? "text-red-600 font-semibold" : "text-amber-600 font-semibold"
-                      }>{u.kyc_status}</span>
-                    </div>
-                  </div>
-                  <div className="shrink-0">
-                    {u.role === "AGENCY" && (
-                      <button
-                        onClick={() => setRegNumber(u.id)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 text-sm font-semibold transition"
-                        title="Saisir le numéro d'enregistrement"
-                      >
-                        N° entreprise
-                      </button>
-                    )}
-                    {u.is_active ? (
-                      <button
-                        onClick={() => {
-                          if (confirm(`Bannir ${u.username} ? Il ne pourra plus se connecter.`))
-                            doUserAction(u.id, "ban");
-                        }}
-                        disabled={userActionId === u.id}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-sm font-semibold disabled:opacity-60 transition"
-                      >
-                        <Ban className="h-4 w-4" />
-                        {userActionId === u.id ? "…" : "Bannir"}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => doUserAction(u.id, "unban")}
-                        disabled={userActionId === u.id}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 text-sm font-semibold disabled:opacity-60 transition"
-                      >
-                        <UserCheck className="h-4 w-4" />
-                        {userActionId === u.id ? "…" : "Réactiver"}
-                      </button>
-                    )}
-                  </div>
-                </div>
+                  u={u}
+                  userActionId={userActionId}
+                  onBan={() => { if (confirm(`Bannir ${u.username} ?`)) doUserAction(u.id, "ban"); }}
+                  onUnban={() => doUserAction(u.id, "unban")}
+                />
               ))}
             </div>
           </div>
@@ -615,6 +569,153 @@ export default function AdminDashboard() {
         )}
       </div>
     </main>
+  );
+}
+
+function UserCard({ u, userActionId, onBan, onUnban }: {
+  u: AdminUser;
+  userActionId: number | null;
+  onBan: () => void;
+  onUnban: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const hasDetails = !!(u.kyc_doc || u.agency_info || u.kyb_doc);
+
+  return (
+    <div className={`rounded-3xl border bg-white overflow-hidden ${!u.is_active ? "border-red-200 bg-red-50/30" : "border-slate-200"}`}>
+      <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-slate-900">{u.username}</span>
+            {(u.first_name || u.last_name) && (
+              <span className="text-sm text-slate-600">({u.first_name} {u.last_name})</span>
+            )}
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${
+              u.role === "AGENCY" ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-blue-50 text-blue-700 border-blue-200"
+            }`}>{u.role}</span>
+            {!u.is_active && (
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 flex items-center gap-1">
+                <Ban className="h-3 w-3" /> Banni
+              </span>
+            )}
+          </div>
+          <div className="text-sm text-slate-500 mt-0.5">{u.email}</div>
+          <div className="text-xs text-slate-400 mt-1">
+            Inscrit le {u.date_joined} · KYC : <span className={
+              u.kyc_status === "VERIFIED" ? "text-emerald-600 font-semibold" :
+              u.kyc_status === "REJECTED" ? "text-red-600 font-semibold" : "text-amber-600 font-semibold"
+            }>{u.kyc_status}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {hasDetails && (
+            <button
+              onClick={() => setExpanded(v => !v)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition"
+            >
+              <Eye className="h-3.5 w-3.5" /> {expanded ? "Masquer" : "Voir KYC"}
+            </button>
+          )}
+          {u.is_active ? (
+            <button onClick={onBan} disabled={userActionId === u.id}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-sm font-semibold disabled:opacity-60 transition">
+              <Ban className="h-4 w-4" />{userActionId === u.id ? "…" : "Bannir"}
+            </button>
+          ) : (
+            <button onClick={onUnban} disabled={userActionId === u.id}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 text-sm font-semibold disabled:opacity-60 transition">
+              <UserCheck className="h-4 w-4" />{userActionId === u.id ? "…" : "Réactiver"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {expanded && hasDetails && (
+        <div className="border-t border-slate-100 bg-slate-50 px-5 py-4 grid gap-4">
+          {/* CLIENT — KYC */}
+          {u.role === "CLIENT" && u.kyc_doc && (
+            <div>
+              <div className="text-xs font-bold uppercase text-slate-400 tracking-widest mb-3">Données KYC</div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                {u.kyc_doc.first_name && (
+                  <div className="rounded-2xl bg-white border border-slate-200 px-3 py-2">
+                    <div className="text-[10px] font-bold uppercase text-slate-400">Prénom</div>
+                    <div className="font-semibold text-sm text-slate-800">{u.kyc_doc.first_name}</div>
+                  </div>
+                )}
+                {u.kyc_doc.last_name && (
+                  <div className="rounded-2xl bg-white border border-slate-200 px-3 py-2">
+                    <div className="text-[10px] font-bold uppercase text-slate-400">Nom</div>
+                    <div className="font-semibold text-sm text-slate-800">{u.kyc_doc.last_name}</div>
+                  </div>
+                )}
+                <div className="rounded-2xl bg-white border border-slate-200 px-3 py-2">
+                  <div className="text-[10px] font-bold uppercase text-slate-400">Email</div>
+                  <div className="font-semibold text-sm text-slate-800 truncate">{u.email}</div>
+                </div>
+                {u.kyc_doc.expiry_date && (
+                  <div className="rounded-2xl bg-amber-50 border border-amber-200 px-3 py-2">
+                    <div className="text-[10px] font-bold uppercase text-amber-600">Expiration CIN/Passeport</div>
+                    <div className="font-semibold text-sm text-amber-800">{new Date(u.kyc_doc.expiry_date).toLocaleDateString("fr-FR")}</div>
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {u.kyc_doc.id_front_url && (
+                  <a href={u.kyc_doc.id_front_url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-sm font-bold text-blue-700 transition">
+                    <Eye className="h-4 w-4" /> 📄 Recto CIN/Passeport
+                  </a>
+                )}
+                {u.kyc_doc.id_back_url && (
+                  <a href={u.kyc_doc.id_back_url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-sm font-bold text-blue-700 transition">
+                    <Eye className="h-4 w-4" /> 📄 Verso CIN/Passeport
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* AGENCY — KYB */}
+          {u.role === "AGENCY" && (
+            <div>
+              <div className="text-xs font-bold uppercase text-slate-400 tracking-widest mb-3">Données KYB</div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                <div className="rounded-2xl bg-white border border-slate-200 px-3 py-2">
+                  <div className="text-[10px] font-bold uppercase text-slate-400">Email</div>
+                  <div className="font-semibold text-sm text-slate-800 truncate">{u.email}</div>
+                </div>
+                {u.agency_info?.legal_name && (
+                  <div className="rounded-2xl bg-white border border-slate-200 px-3 py-2">
+                    <div className="text-[10px] font-bold uppercase text-slate-400">Raison sociale</div>
+                    <div className="font-semibold text-sm text-slate-800">{u.agency_info.legal_name}</div>
+                  </div>
+                )}
+                {u.agency_info?.registration_number && (
+                  <div className="rounded-2xl bg-white border border-slate-200 px-3 py-2">
+                    <div className="text-[10px] font-bold uppercase text-slate-400">N° RC / SIRET</div>
+                    <div className="font-mono font-semibold text-sm text-slate-800">{u.agency_info.registration_number}</div>
+                  </div>
+                )}
+                {u.kyb_doc?.expiry_date && (
+                  <div className="rounded-2xl bg-amber-50 border border-amber-200 px-3 py-2">
+                    <div className="text-[10px] font-bold uppercase text-amber-600">Expiration document</div>
+                    <div className="font-semibold text-sm text-amber-800">{new Date(u.kyb_doc.expiry_date).toLocaleDateString("fr-FR")}</div>
+                  </div>
+                )}
+              </div>
+              {u.kyb_doc?.document_url && (
+                <a href={u.kyb_doc.document_url} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-sm font-bold text-blue-700 transition">
+                  <Eye className="h-4 w-4" /> 📄 Voir le document KYB
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
