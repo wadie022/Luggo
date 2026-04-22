@@ -92,8 +92,11 @@ def _generate_recap_pdf(data: dict) -> bytes:
 
 
 def _send(to: list[str], subject: str, html: str, attachments: list | None = None):
+    import logging
+    logger = logging.getLogger(__name__)
     api_key = os.getenv("RESEND_API_KEY")
     if not api_key:
+        logger.warning("[EMAIL] RESEND_API_KEY non défini — email non envoyé à %s", to)
         return
     resend.api_key = api_key
     try:
@@ -105,9 +108,10 @@ def _send(to: list[str], subject: str, html: str, attachments: list | None = Non
         }
         if attachments:
             params["attachments"] = attachments
-        resend.Emails.send(params)
-    except Exception:
-        pass  # ne jamais planter l'API à cause d'un email
+        result = resend.Emails.send(params)
+        logger.info("[EMAIL] Envoyé à %s — id=%s", to, getattr(result, 'id', result))
+    except Exception as e:
+        logger.error("[EMAIL] Erreur envoi à %s : %s", to, e)
 
 
 def _base(title: str, body: str) -> str:
