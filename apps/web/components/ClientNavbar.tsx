@@ -12,6 +12,7 @@ const navLinks = [
   { href: "/mes-colis", label: "Mes colis" },
   { href: "/messages", label: "Messages" },
   { href: "/map", label: "Carte" },
+  { href: "/alertes", label: "Alertes" },
   { href: "/reclamations", label: "Réclamations" },
 ];
 

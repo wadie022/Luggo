@@ -1504,7 +1504,8 @@ from django.db.models import Prefetch as _Prefetch
 
 def _check_conv_access(user, conv):
     is_client = (user.id == conv.client_id)
-    is_agency = hasattr(user, 'agency') and user.agency_id == conv.agency_id
+    agency = getattr(user, 'agency', None)
+    is_agency = agency is not None and agency.id == conv.agency_id
     is_admin  = user.role == 'ADMIN'
     if not (is_client or is_agency or is_admin):
         from rest_framework.exceptions import PermissionDenied
