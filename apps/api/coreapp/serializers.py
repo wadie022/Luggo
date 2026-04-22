@@ -112,11 +112,15 @@ class RegisterSerializer(serializers.ModelSerializer):
                 user=user,
                 defaults={"legal_name": user.username, "country": "FR", "city": "Paris"},
             )
-            from .emails import send_welcome_agency
-            send_welcome_agency(user.email, user.username)
-        elif user.role == "CLIENT":
-            from .emails import send_welcome_client
-            send_welcome_client(user.email, user.username)
+        try:
+            if user.role == "AGENCY":
+                from .emails import send_welcome_agency
+                send_welcome_agency(user.email, user.username)
+            elif user.role == "CLIENT":
+                from .emails import send_welcome_client
+                send_welcome_client(user.email, user.username)
+        except Exception:
+            pass
 
         return user
 

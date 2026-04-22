@@ -15,6 +15,7 @@ import json
 import base64
 import mimetypes
 import re as _re
+from datetime import timedelta
 from django.utils import timezone
 
 from .models import Trip, Shipment, KYCDocument, AgencyDocument, Notification, Reclamation, AgencyBranch, Review, Conversation, Message, Payment, PushToken, RouteAlert
@@ -257,8 +258,11 @@ class RegisterView(generics.CreateAPIView):
         user.email_verification_code = code
         user.email_verification_expires = tz.now() + timedelta(minutes=15)
         user.save(update_fields=["email_verified", "email_verification_code", "email_verification_expires"])
-        if user.email:
-            send_email_verification(user.email, user.username, code)
+        try:
+            if user.email:
+                send_email_verification(user.email, user.username, code)
+        except Exception:
+            pass
 
 
 class EmailVerifyView(APIView):
@@ -932,7 +936,7 @@ class AdminUsersView(APIView):
         elif active == "true":
             qs = qs.filter(is_active=True)
 
-        qs = qs.prefetch_related("kycdocument_set", "agency__agencydocument_set")
+        qs = qs.select_related("kyc", "agency__kyb_doc")
 
         data = []
         for u in qs:
@@ -948,7 +952,7 @@ class AdminUsersView(APIView):
                 "date_joined": u.date_joined.strftime("%d/%m/%Y"),
             }
             if u.role == "CLIENT":
-                kyc = u.kycdocument_set.order_by("-submitted_at").first()
+                kyc = getattr(u, "kyc", None)
                 if kyc:
                     entry["kyc_doc"] = {
                         "first_name": kyc.first_name or "",
@@ -964,7 +968,7 @@ class AdminUsersView(APIView):
                         "legal_name": agency.legal_name or "",
                         "registration_number": agency.registration_number or "",
                     }
-                    kyb = agency.agencydocument_set.order_by("-submitted_at").first()
+                    kyb = getattr(agency, "kyb_doc", None)
                     if kyb:
                         entry["kyb_doc"] = {
                             "expiry_date": kyb.expiry_date.isoformat() if kyb.expiry_date else None,
