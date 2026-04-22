@@ -420,9 +420,9 @@ export default function HomePage() {
           <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-sm text-white/35">
             <span>© {new Date().getFullYear()} Luggo.ma — Tous droits réservés.</span>
             <div className="flex gap-5">
-              <span className="hover:text-white/60 cursor-pointer transition">Mentions légales</span>
-              <span className="hover:text-white/60 cursor-pointer transition">Politique de confidentialité</span>
-              <span className="hover:text-white/60 cursor-pointer transition">CGU</span>
+              <Link href="/mentions-legales" className="hover:text-white/60 transition">Mentions légales</Link>
+              <Link href="/confidentialite" className="hover:text-white/60 transition">Politique de confidentialité</Link>
+              <Link href="/cgu" className="hover:text-white/60 transition">CGU</Link>
             </div>
           </div>
         </div>
