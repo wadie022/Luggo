@@ -199,20 +199,20 @@ export default function AdminDashboard() {
     alert("Numéro enregistré !");
   }
 
-  async function reviewKYC(id: number, newStatus: "VERIFIED" | "REJECTED", reason = "", firstName = "", lastName = "") {
+  async function reviewKYC(id: number, newStatus: "VERIFIED" | "REJECTED", reason = "", firstName = "", lastName = "", expiryDate = "") {
     await fetch(`${API_BASE}/admin/kyc/${id}/review/`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...authHeader() },
-      body: JSON.stringify({ status: newStatus, rejection_reason: reason, first_name: firstName, last_name: lastName }),
+      body: JSON.stringify({ status: newStatus, rejection_reason: reason, first_name: firstName, last_name: lastName, expiry_date: expiryDate }),
     });
     await reload();
   }
 
-  async function reviewKYB(id: number, newStatus: "VERIFIED" | "REJECTED", reason = "", legalName = "", regNumber = "") {
+  async function reviewKYB(id: number, newStatus: "VERIFIED" | "REJECTED", reason = "", legalName = "", regNumber = "", expiryDate = "") {
     await fetch(`${API_BASE}/admin/kyb/${id}/review/`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...authHeader() },
-      body: JSON.stringify({ status: newStatus, rejection_reason: reason, legal_name: legalName, registration_number: regNumber }),
+      body: JSON.stringify({ status: newStatus, rejection_reason: reason, legal_name: legalName, registration_number: regNumber, expiry_date: expiryDate }),
     });
     await reload();
   }
@@ -593,7 +593,7 @@ export default function AdminDashboard() {
                 <KYCCard
                   key={item.id}
                   item={item}
-                  onApprove={(firstName, lastName) => reviewKYC(item.id, "VERIFIED", "", firstName, lastName)}
+                  onApprove={(firstName, lastName, expiryDate) => reviewKYC(item.id, "VERIFIED", "", firstName, lastName, expiryDate)}
                   onReject={(reason) => reviewKYC(item.id, "REJECTED", reason)}
                 />
               ))}
@@ -606,7 +606,7 @@ export default function AdminDashboard() {
                 <KYBCard
                   key={item.id}
                   item={item}
-                  onApprove={(legalName, regNumber) => reviewKYB(item.id, "VERIFIED", "", legalName, regNumber)}
+                  onApprove={(legalName, regNumber, expiryDate) => reviewKYB(item.id, "VERIFIED", "", legalName, regNumber, expiryDate)}
                   onReject={(reason) => reviewKYB(item.id, "REJECTED", reason)}
                 />
               ))}
@@ -639,12 +639,13 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
 
 function KYCCard({ item, onApprove, onReject }: {
   item: KYCItem;
-  onApprove: (firstName: string, lastName: string) => void;
+  onApprove: (firstName: string, lastName: string, expiryDate: string) => void;
   onReject: (reason: string) => void;
 }) {
   const [showForm, setShowForm] = useState(false);
   const [firstName, setFirstName] = useState(item.first_name || item.extracted_data?.first_name || "");
   const [lastName,  setLastName]  = useState(item.last_name  || item.extracted_data?.last_name  || "");
+  const [expiryDate, setExpiryDate] = useState(item.expiry_date ? item.expiry_date.slice(0, 10) : "");
   const [rejectMode, setRejectMode] = useState(false);
   const [reason, setReason] = useState("");
   const docUrls = [item.id_front_url, item.id_back_url].filter(Boolean) as string[];
@@ -697,9 +698,14 @@ function KYCCard({ item, onApprove, onReject }: {
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
             </div>
           </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Date d'expiration CIN/Passeport *</label>
+            <input type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
           <div className="flex gap-2">
-            <button onClick={() => { onApprove(firstName, lastName); setShowForm(false); }}
-              disabled={!firstName.trim() || !lastName.trim()}
+            <button onClick={() => { onApprove(firstName, lastName, expiryDate); setShowForm(false); }}
+              disabled={!firstName.trim() || !lastName.trim() || !expiryDate}
               className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold">
               Valider
             </button>
@@ -745,12 +751,13 @@ function KYCCard({ item, onApprove, onReject }: {
 
 function KYBCard({ item, onApprove, onReject }: {
   item: KYBItem;
-  onApprove: (legalName: string, regNumber: string) => void;
+  onApprove: (legalName: string, regNumber: string, expiryDate: string) => void;
   onReject: (reason: string) => void;
 }) {
   const [showForm, setShowForm] = useState(false);
   const [legalName, setLegalName]   = useState(item.extracted_data?.company_name ?? item.agency_name ?? "");
   const [regNumber, setRegNumber]   = useState(item.extracted_data?.registration_number ?? "");
+  const [expiryDate, setExpiryDate] = useState(item.expiry_date ? item.expiry_date.slice(0, 10) : "");
   const [rejectMode, setRejectMode] = useState(false);
   const [reason, setReason]         = useState("");
 
@@ -799,9 +806,14 @@ function KYBCard({ item, onApprove, onReject }: {
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
             </div>
           </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Date d'expiration du document *</label>
+            <input type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
           <div className="flex gap-2">
-            <button onClick={() => { onApprove(legalName, regNumber); setShowForm(false); }}
-              disabled={!legalName.trim()}
+            <button onClick={() => { onApprove(legalName, regNumber, expiryDate); setShowForm(false); }}
+              disabled={!legalName.trim() || !expiryDate}
               className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold">
               Valider
             </button>

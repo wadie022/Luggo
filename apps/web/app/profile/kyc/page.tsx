@@ -58,9 +58,6 @@ export default function KYCPage() {
   const [successMsg, setSuccessMsg]   = useState<string | null>(null);
   const [frontPreview, setFrontPreview] = useState<string | null>(null);
   const [backPreview, setBackPreview]   = useState<string | null>(null);
-  const [firstName, setFirstName]   = useState("");
-  const [lastName, setLastName]     = useState("");
-  const [expiryDate, setExpiryDate] = useState("");
 
   const role = typeof window === "undefined" ? null : getRole();
 
@@ -93,9 +90,6 @@ export default function KYCPage() {
     form.append("id_front", front);
     const back = backRef.current?.files?.[0];
     if (back) form.append("id_back", back);
-    if (firstName.trim()) form.append("first_name", firstName.trim());
-    if (lastName.trim()) form.append("last_name", lastName.trim());
-    if (expiryDate) form.append("expiry_date", expiryDate);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -216,29 +210,6 @@ export default function KYCPage() {
             )}
 
             <form onSubmit={handleSubmit} className="grid gap-5">
-              {/* Identité */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold uppercase text-slate-500 mb-1.5">Prénom</label>
-                  <input value={firstName} onChange={e => setFirstName(e.target.value)}
-                    placeholder="Mohamed"
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-400 transition" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase text-slate-500 mb-1.5">Nom</label>
-                  <input value={lastName} onChange={e => setLastName(e.target.value)}
-                    placeholder="Alami"
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-400 transition" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold uppercase text-slate-500 mb-1.5">
-                  Date d'expiration du document <span className="text-red-500">*</span>
-                </label>
-                <input type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} required
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-400 transition" />
-              </div>
-
               {/* Recto */}
               <div>
                 <label className="block text-xs font-semibold uppercase text-slate-500 mb-2">

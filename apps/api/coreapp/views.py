@@ -421,15 +421,6 @@ class KYCUploadView(APIView):
             kyc.id_front = id_front
             if id_back:
                 kyc.id_back = id_back
-            kyc.first_name  = (request.data.get("first_name") or "").strip()
-            kyc.last_name   = (request.data.get("last_name") or "").strip()
-            raw_expiry = (request.data.get("expiry_date") or "").strip()
-            if raw_expiry:
-                from datetime import date
-                try:
-                    kyc.expiry_date = date.fromisoformat(raw_expiry)
-                except ValueError:
-                    pass
             kyc.save()
         except Exception as e:
             return Response({"detail": f"Erreur sauvegarde fichier : {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -574,20 +565,25 @@ class AdminKYCReviewView(APIView):
         kyc.rejection_reason = request.data.get("rejection_reason", "")
         if new_status == "VERIFIED":
             kyc.verified_at = timezone.now()
+            from datetime import date
+            first_name = (request.data.get("first_name") or "").strip()
+            last_name  = (request.data.get("last_name") or "").strip()
+            raw_expiry = (request.data.get("expiry_date") or "").strip()
+            if first_name: kyc.first_name = first_name
+            if last_name:  kyc.last_name  = last_name
+            if raw_expiry:
+                try: kyc.expiry_date = date.fromisoformat(raw_expiry)
+                except ValueError: pass
         kyc.save()
 
         update_fields = ["kyc_status"]
         kyc.user.kyc_status = new_status
         if new_status == "VERIFIED":
-            # Admin peut fournir first_name/last_name manuellement, sinon on prend extracted_data
-            data = kyc.extracted_data or {}
-            first_name = request.data.get("first_name") or data.get("first_name", "")
-            last_name  = request.data.get("last_name")  or data.get("last_name", "")
-            if first_name:
-                kyc.user.first_name = first_name
+            if kyc.first_name:
+                kyc.user.first_name = kyc.first_name
                 update_fields.append("first_name")
-            if last_name:
-                kyc.user.last_name = last_name
+            if kyc.last_name:
+                kyc.user.last_name = kyc.last_name
                 update_fields.append("last_name")
         kyc.user.save(update_fields=update_fields)
         if new_status == "VERIFIED":
@@ -634,6 +630,11 @@ class AdminKYBReviewView(APIView):
         kyb.rejection_reason = request.data.get("rejection_reason", "")
         if new_status == "VERIFIED":
             kyb.verified_at = timezone.now()
+            from datetime import date
+            raw_expiry = (request.data.get("expiry_date") or "").strip()
+            if raw_expiry:
+                try: kyb.expiry_date = date.fromisoformat(raw_expiry)
+                except ValueError: pass
         kyb.save()
 
         kyb.agency.kyc_status = new_status
@@ -691,13 +692,6 @@ class AgencyKYBUploadView(APIView):
         kyb.rejection_reason = ""
         kyb.extracted_data = {}
         kyb.document = doc_file
-        raw_expiry = (request.data.get("expiry_date") or "").strip()
-        if raw_expiry:
-            from datetime import date
-            try:
-                kyb.expiry_date = date.fromisoformat(raw_expiry)
-            except ValueError:
-                pass
         kyb.save()
 
         send_kyb_submitted(agency.user.email, agency.legal_name)
