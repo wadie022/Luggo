@@ -108,6 +108,7 @@ export default function AgencyProfilePage() {
   );
 
   return (
+    <>
     <main className="min-h-screen bg-white text-slate-900">
 
       <div className="mx-auto max-w-2xl px-4 py-10">
@@ -316,5 +317,6 @@ export default function AgencyProfilePage() {
         </div>
       </div>
     )}
+  </>
   );
 }

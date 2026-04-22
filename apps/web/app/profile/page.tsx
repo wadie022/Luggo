@@ -106,6 +106,7 @@ export default function ProfilePage() {
     : null;
 
   return (
+    <>
     <main className="min-h-screen bg-[#f8f9fb] text-[#0a0a0a]">
       <ClientNavbar />
 
@@ -281,6 +282,7 @@ export default function ProfilePage() {
         </div>
       </div>
     )}
+  </>
   );
 }
 
